@@ -3,10 +3,12 @@ import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { LoginPage } from '@/pages/LoginPage';
 import { PatientsPage } from '@/pages/PatientsPage';
 import { DashboardPage } from '@/pages/DashboardPage';
+import { CategoriesPage } from '@/pages/CategoriesPage';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { PreferencesProvider, usePreferences } from './preferences/PreferencesContext';
+import { ToastProvider } from './components/Toaster';
 
-type AdminRoute = 'dashboard' | 'patients';
+type AdminRoute = 'dashboard' | 'patients' | 'categories';
 
 const AdminNavbar: React.FC<{
   activeRoute: AdminRoute;
@@ -97,6 +99,18 @@ const AdminNavbar: React.FC<{
             >
               <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
               Patients
+            </button>
+            <button
+              type="button"
+              onClick={() => onRouteChange('categories')}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all ${
+                activeRoute === 'categories'
+                  ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-900 dark:text-neutral-50'
+                  : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50'
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+              Categories
             </button>
           </div>
         </div>
@@ -257,6 +271,18 @@ const AdminNavbar: React.FC<{
                     <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
                     Patients
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRouteChange('categories')}
+                    className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors ${
+                      activeRoute === 'categories'
+                        ? 'bg-neutral-50 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50'
+                        : 'text-neutral-700 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                    }`}
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />
+                    Categories
+                  </button>
                 </div>
 
                 {/* Page Size Selector */}
@@ -329,7 +355,9 @@ const AppInner: React.FC = () => {
     <div className="min-h-screen bg-neutral-50 text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-50">
       <AdminNavbar activeRoute={route} onRouteChange={setRoute} />
       <main className="mx-auto flex max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
-        {route === 'dashboard' ? <DashboardPage /> : <PatientsPage />}
+        {route === 'dashboard' && <DashboardPage />}
+        {route === 'patients' && <PatientsPage />}
+        {route === 'categories' && <CategoriesPage />}
       </main>
     </div>
   );
@@ -337,10 +365,12 @@ const AppInner: React.FC = () => {
 
 export const App: React.FC = () => (
   <ThemeProvider>
-    <AuthProvider>
-      <PreferencesProvider>
-        <AppInner />
-      </PreferencesProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <PreferencesProvider>
+          <AppInner />
+        </PreferencesProvider>
+      </AuthProvider>
+    </ToastProvider>
   </ThemeProvider>
 );
