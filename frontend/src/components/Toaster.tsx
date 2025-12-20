@@ -58,14 +58,14 @@ const ToastItem: React.FC<{
     <div
       onClick={handleRemove}
       className={`
-        cursor-pointer rounded-md border px-3 py-2 shadow-sm
+        cursor-pointer rounded-lg border px-4 py-2.5 shadow-md
         bg-white border-neutral-200 dark:bg-neutral-900 dark:border-neutral-800
         transition-all duration-150
         ${isVisible && !isLeaving ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}
       `}
       role="alert"
     >
-      <p className="text-xs text-neutral-900 dark:text-neutral-100">{toast.title}</p>
+      <p className="text-sm text-neutral-900 dark:text-neutral-100">{toast.title}</p>
     </div>
   );
 };
