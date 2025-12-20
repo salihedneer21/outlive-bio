@@ -41,7 +41,10 @@ const fetchUserRoleFromDatabase = async (userId: string): Promise<string | null>
   return typeof data.role === 'string' ? data.role : null;
 };
 
-const getUserRole = async (accessToken: string | undefined, userId: string): Promise<string | null> => {
+export const getUserRole = async (
+  accessToken: string | undefined,
+  userId: string
+): Promise<string | null> => {
   // const tokenRole = decodeUserRoleFromToken(accessToken);
   // if (tokenRole) {
   //   return tokenRole;
