@@ -94,3 +94,39 @@ export const loginUser = async (email: string, password: string): Promise<LoginR
     role
   };
 };
+
+export const refreshUserSession = async (refreshToken: string): Promise<LoginResponseData> => {
+  const supabase = getSupabaseClient();
+
+  const { data, error } = await supabase.auth.refreshSession({
+    refresh_token: refreshToken
+  });
+
+  if (error || !data.session || !data.user) {
+    const err: Error & { code?: string } = new Error('Invalid or expired refresh token');
+    err.code = 'INVALID_REFRESH';
+    throw err;
+  }
+
+  const { session, user } = data;
+
+  const role = await getUserRole(session.access_token, user.id);
+
+  if (role !== 'admin') {
+    const err: Error & { code?: string } = new Error('Admin access required');
+    err.code = 'FORBIDDEN';
+    throw err;
+  }
+
+  return {
+    user: {
+      id: user.id,
+      email: user.email ?? ''
+    },
+    tokens: {
+      accessToken: session.access_token,
+      refreshToken: session.refresh_token ?? refreshToken
+    },
+    role
+  };
+};

@@ -39,4 +39,3 @@ export const listAdminPatients = async (req: Request, res: Response): Promise<vo
     });
   }
 };
-

@@ -58,6 +58,7 @@ export const getAdminPatients = async (query: AdminPatientsQuery): Promise<Admin
   const pageSize = query.pageSize > 0 ? Math.min(query.pageSize, 100) : 10;
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
+  const search = query.search?.trim();
 
   /*
     Step 1: Fetch patients with pagination, search, and sorting from 'patients' table
@@ -69,15 +70,48 @@ export const getAdminPatients = async (query: AdminPatientsQuery): Promise<Admin
     Fathima needs to add foreign key from patients.user_id to profile.user_id
   */
 
+  // Optional name search: find matching profile.user_id values using a simple ILIKE search.
+  // This keeps the implementation database-agnostic while still allowing searching by name.
+  let matchingProfileUserIds: string[] = [];
+  if (search) {
+    const { data: profileMatches, error: profileError } = await supabase
+      .from('profile')
+      .select('user_id')
+      .or(
+        [
+          `first_name.ilike.%${search}%`,
+          `last_name.ilike.%${search}%`,
+          `phone.ilike.%${search}%`
+        ].join(',')
+      );
+
+    if (profileError) {
+      throw profileError;
+    }
+
+    if (profileMatches) {
+      matchingProfileUserIds = Array.from(
+        new Set(
+          (profileMatches as unknown as ProfileRow[])
+            .map((row) => row.user_id)
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+        )
+      );
+    }
+  }
+
   let patientsQuery = supabase
     .from('patients')
     .select('id, user_id, email, created_at', { count: 'exact' });
 
-  const search = query.search?.trim();
   if (search) {
-    patientsQuery = patientsQuery.or(
-      `id.ilike.%${search}%,user_id.ilike.%${search}%,email.ilike.%${search}%`
-    );
+    // Search by email and any profile that matched first/last name or phone.
+    const orFilters: string[] = [`email.ilike.%${search}%`];
+    for (const userId of matchingProfileUserIds) {
+      orFilters.push(`user_id.eq.${userId}`);
+    }
+
+    patientsQuery = patientsQuery.or(orFilters.join(','));
   }
 
   const sortBy = query.sortBy ?? 'created_at';

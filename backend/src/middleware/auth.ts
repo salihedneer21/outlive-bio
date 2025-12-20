@@ -2,20 +2,45 @@ import type { NextFunction, Request, Response } from 'express';
 import { getSupabaseServiceClient } from '@lib/supabase';
 import { getUserRole } from '@modules/auth/auth.service';
 
+const ACCESS_COOKIE_NAME = 'outlive_admin_access';
+
+const getAccessTokenFromRequest = (req: Request): string | null => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const tokenFromHeader = authHeader.slice('Bearer '.length).trim();
+    if (tokenFromHeader) {
+      return tokenFromHeader;
+    }
+  }
+
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) {
+    return null;
+  }
+
+  const parts = cookieHeader.split(';').map((part) => part.trim());
+  for (const part of parts) {
+    if (part.startsWith(`${ACCESS_COOKIE_NAME}=`)) {
+      const value = part.slice(ACCESS_COOKIE_NAME.length + 1);
+      try {
+        return decodeURIComponent(value);
+      } catch {
+        return value;
+      }
+    }
+  }
+
+  return null;
+};
+
 export const requireAdmin = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ message: 'Authorization header missing or malformed' });
-      return;
-    }
-
-    const accessToken = authHeader.slice('Bearer '.length).trim();
+    const accessToken = getAccessTokenFromRequest(req);
 
     if (!accessToken) {
       res.status(401).json({ message: 'Access token is required' });

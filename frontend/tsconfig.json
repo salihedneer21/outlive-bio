@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ES2020"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@outlive/shared": ["../shared/src/index"],
+      "@outlive/shared/*": ["../shared/src/*"],
+      "@/*": ["src/*"]
+    }
+  },
+  "include": ["src", "../shared/src"],
+  "exclude": ["node_modules"]
+}
