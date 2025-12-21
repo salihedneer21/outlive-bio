@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { AdminPatientsResult } from '@outlive/shared';
+import type { AdminPatientsResult, AdminPatientsStats } from '@outlive/shared';
 
 export interface ListPatientsParams {
   page?: number;
@@ -11,6 +11,16 @@ export interface ListPatientsParams {
 
 export interface ListPatientsResponse {
   data: AdminPatientsResult;
+  message: string;
+}
+
+export interface PatientStatsParams {
+  from?: string;
+  to?: string;
+}
+
+export interface PatientStatsResponse {
+  data: AdminPatientsStats;
   message: string;
 }
 
@@ -27,6 +37,20 @@ export const listPatients = async (params: ListPatientsParams = {}): Promise<Lis
   const path = `/admin/patients${query ? `?${query}` : ''}`;
 
   return apiFetch<ListPatientsResponse>(path, {
+    method: 'GET'
+  });
+};
+
+export const getPatientStats = async (params: PatientStatsParams = {}): Promise<PatientStatsResponse> => {
+  const searchParams = new URLSearchParams();
+
+  if (params.from) searchParams.set('from', params.from);
+  if (params.to) searchParams.set('to', params.to);
+
+  const query = searchParams.toString();
+  const path = `/admin/patients/stats${query ? `?${query}` : ''}`;
+
+  return apiFetch<PatientStatsResponse>(path, {
     method: 'GET'
   });
 };

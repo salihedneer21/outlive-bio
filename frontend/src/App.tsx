@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { LoginPage } from '@/pages/LoginPage';
-import { PatientsPage } from '@/pages/PatientsPage';
+import { PatientsPage } from '@/pages/patients';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { CategoriesPage } from '@/pages/categories';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';

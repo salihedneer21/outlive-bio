@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { getAdminPatients } from './patients.service';
+import { getAdminPatients, getAdminPatientsStats } from './patients.service';
 import type { AdminPatientsQuery } from './patients.types';
 import type { ApiResponse } from '../../types/app';
 
@@ -36,6 +36,29 @@ export const listAdminPatients = async (req: Request, res: Response): Promise<vo
   } catch (error) {
     res.status(500).json({
       message: error instanceof Error ? error.message : 'Failed to fetch patients'
+    });
+  }
+};
+
+export const getAdminPatientsStatsHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const from = typeof req.query.from === 'string' ? req.query.from : undefined;
+  const to = typeof req.query.to === 'string' ? req.query.to : undefined;
+
+  try {
+    const stats = await getAdminPatientsStats({ from, to });
+
+    const response: ApiResponse<typeof stats> = {
+      data: stats,
+      message: 'Patient stats fetched successfully'
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to fetch patient stats'
     });
   }
 };

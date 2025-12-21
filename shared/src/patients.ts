@@ -53,3 +53,18 @@ export interface AdminPatientsResult {
   pagination: PaginationMeta;
 }
 
+export interface AdminPatientsDailyRegistrationsPoint {
+  date: string;
+  count: number;
+}
+
+export interface AdminPatientsStats {
+  totalPatients: number;
+  genderCounts: Record<string, number>;
+  intakeStatusCounts: {
+    not_started: number;
+    in_progress: number;
+    completed: number;
+  };
+  dailyRegistrations: AdminPatientsDailyRegistrationsPoint[];
+}

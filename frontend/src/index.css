@@ -5,11 +5,17 @@
 /* Light mode base */
 body {
   @apply bg-neutral-50 text-neutral-900 antialiased;
+  --tooltip-bg: rgba(255, 255, 255, 0.95);
+  --tooltip-border: #e5e7eb;
+  --tooltip-text: #171717;
 }
 
 /* True dark mode - neutral colors without blue tint */
 html.dark body {
   @apply bg-neutral-950 text-neutral-50;
+  --tooltip-bg: rgba(23, 23, 23, 0.95);
+  --tooltip-border: #404040;
+  --tooltip-text: #fafafa;
 }
 
 /* Custom scrollbar for dark mode */

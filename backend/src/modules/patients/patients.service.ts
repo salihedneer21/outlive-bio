@@ -1,8 +1,10 @@
 import { getSupabaseServiceClient } from '@lib/supabase';
 import type {
   AdminPatient,
+  AdminPatientsDailyRegistrationsPoint,
   AdminPatientsQuery,
   AdminPatientsResult,
+  AdminPatientsStats,
   IntakeStep,
   PaginationMeta
 } from './patients.types';
@@ -48,6 +50,27 @@ const buildPaginationMeta = (page: number, pageSize: number, total: number): Pag
     totalPages,
     hasNextPage: page < totalPages,
     hasPrevPage: page > 1 && totalPages > 0
+  };
+};
+
+const formatDate = (value: string | null): string | null => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+};
+
+const getDefaultDateRange = (): { from: string; to: string } => {
+  const today = new Date();
+  const to = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const from = new Date(to);
+  from.setUTCDate(to.getUTCDate() - 29);
+
+  const format = (d: Date): string => d.toISOString().slice(0, 10);
+
+  return {
+    from: format(from),
+    to: format(to)
   };
 };
 
@@ -208,5 +231,103 @@ export const getAdminPatients = async (query: AdminPatientsQuery): Promise<Admin
   return {
     patients,
     pagination: buildPaginationMeta(page, pageSize, safeCount)
+  };
+};
+
+export const getAdminPatientsStats = async (params?: {
+  from?: string | null;
+  to?: string | null;
+}): Promise<AdminPatientsStats> => {
+  const supabase = getSupabaseServiceClient();
+
+  const defaultRange = getDefaultDateRange();
+  const from = params?.from || defaultRange.from;
+  const to = params?.to || defaultRange.to;
+
+  const [{ count: patientsCount, error: patientsCountError }, { data: profilesData, error: profilesError }, { data: registrationsData, error: registrationsError }] =
+    await Promise.all([
+      supabase.from('patients').select('id', { count: 'exact', head: true }),
+      supabase.from('profile').select('sex_at_birth, intake_step'),
+      supabase
+        .from('patients')
+        .select('created_at')
+        .gte('created_at', from)
+        .lte('created_at', to)
+    ]);
+
+  if (patientsCountError) {
+    throw patientsCountError;
+  }
+
+  if (profilesError) {
+    throw profilesError;
+  }
+
+  if (registrationsError) {
+    throw registrationsError;
+  }
+
+  const totalPatients = typeof patientsCount === 'number' ? patientsCount : 0;
+
+  const genderCounts: Record<string, number> = {};
+  const intakeStatusCounts: AdminPatientsStats['intakeStatusCounts'] = {
+    not_started: 0,
+    in_progress: 0,
+    completed: 0
+  };
+
+  if (profilesData) {
+    for (const profile of profilesData as Array<{ sex_at_birth: string | null; intake_step: string | null }>) {
+      const genderKey = profile.sex_at_birth && profile.sex_at_birth.trim()
+        ? profile.sex_at_birth.trim().toLowerCase()
+        : 'unknown';
+      genderCounts[genderKey] = (genderCounts[genderKey] ?? 0) + 1;
+
+      const status = normalizeIntakeStatus(profile.intake_step as IntakeStep);
+      intakeStatusCounts[status] += 1;
+    }
+  }
+
+  const dailyRegistrationsMap = new Map<string, number>();
+
+  // Initialize all days in range with 0 for a continuous series.
+  {
+    const start = new Date(from);
+    const end = new Date(to);
+    const formatDay = (d: Date): string => d.toISOString().slice(0, 10);
+
+    const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate()));
+    const endDay = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()));
+
+    while (cursor <= endDay) {
+      const key = formatDay(cursor);
+      dailyRegistrationsMap.set(key, 0);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+
+  if (registrationsData) {
+    for (const row of registrationsData as Array<{ created_at: string | null }>) {
+      const iso = formatDate(row.created_at);
+      if (!iso) continue;
+      const dayKey = iso.slice(0, 10);
+      if (!dailyRegistrationsMap.has(dayKey)) {
+        dailyRegistrationsMap.set(dayKey, 0);
+      }
+      dailyRegistrationsMap.set(dayKey, (dailyRegistrationsMap.get(dayKey) ?? 0) + 1);
+    }
+  }
+
+  const dailyRegistrations: AdminPatientsDailyRegistrationsPoint[] = Array.from(
+    dailyRegistrationsMap.entries()
+  )
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([date, count]) => ({ date, count }));
+
+  return {
+    totalPatients,
+    genderCounts,
+    intakeStatusCounts,
+    dailyRegistrations
   };
 };

@@ -6,14 +6,10 @@ import type { AdminPatient, AdminPatientsResult } from '@outlive/shared';
 type SortColumn = 'name' | 'registrationDate' | 'intakeStatus' | null;
 type SortDirection = 'asc' | 'desc';
 
-// Skeleton Component for loading states
 const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <div
-    className={`animate-pulse rounded bg-neutral-200 dark:bg-neutral-800 ${className}`}
-  />
+  <div className={`animate-pulse rounded bg-neutral-200 dark:bg-neutral-800 ${className}`} />
 );
 
-// Table Skeleton Row
 const TableSkeletonRow: React.FC = () => (
   <tr className="border-b border-neutral-100 last:border-b-0 dark:border-neutral-800">
     <td className="px-3 py-3 sm:px-4">
@@ -40,7 +36,6 @@ const TableSkeletonRow: React.FC = () => (
   </tr>
 );
 
-// Card Skeleton for mobile view
 const CardSkeleton: React.FC = () => (
   <div className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
     <div className="flex items-start justify-between gap-3">
@@ -63,7 +58,6 @@ const CardSkeleton: React.FC = () => (
   </div>
 );
 
-// Patient Card for mobile view
 const PatientCard: React.FC<{ patient: AdminPatient }> = ({ patient }) => {
   const fullName = patient.name.full || 'N/A';
   const email = patient.email || 'No email';
@@ -90,9 +84,7 @@ const PatientCard: React.FC<{ patient: AdminPatient }> = ({ patient }) => {
         <span
           className={`inline-flex flex-shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase ${intakeClasses}`}
         >
-          {patient.intake.step
-            ? patient.intake.step.replace(/_/g, ' ')
-            : 'Not started'}
+          {patient.intake.step ? patient.intake.step.replace(/_/g, ' ') : 'Not started'}
         </span>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
@@ -115,7 +107,7 @@ const PatientCard: React.FC<{ patient: AdminPatient }> = ({ patient }) => {
   );
 };
 
-export const PatientsPage: React.FC = () => {
+export const PatientList: React.FC = () => {
   const { pageSize } = usePreferences();
   const [patients, setPatients] = useState<AdminPatient[]>([]);
   const [page, setPage] = useState(1);
@@ -156,7 +148,6 @@ export const PatientsPage: React.FC = () => {
           return (statusA - statusB) * directionFactor;
         }
 
-        // registrationDate / default to created_at ordering
         const dateA = a.registrationDate ? new Date(a.registrationDate).getTime() : 0;
         const dateB = b.registrationDate ? new Date(b.registrationDate).getTime() : 0;
         return (dateA - dateB) * directionFactor;
@@ -169,9 +160,7 @@ export const PatientsPage: React.FC = () => {
 
   const fetchPatients = useCallback(
     async (pageToLoad: number, searchValue: string) => {
-      const cacheKey = `${pageToLoad}:${pageSize}:${searchValue.trim()}:${sortColumn ?? 'none'}:${
-        sortDirection
-      }`;
+      const cacheKey = `${pageToLoad}:${pageSize}:${searchValue.trim()}:${sortColumn ?? 'none'}:${sortDirection}`;
       const cached = cacheRef.current.get(cacheKey);
 
       if (cached) {
@@ -213,10 +202,8 @@ export const PatientsPage: React.FC = () => {
     void fetchPatients(page, searchQuery);
   }, [page, searchQuery, fetchPatients]);
 
-  // Debounced search so we don't hit the API on every single keystroke.
   useEffect(() => {
     if (!searchInput.trim()) {
-      // When clearing the input, reset to the unfiltered list.
       if (searchQuery) {
         const timeoutId = window.setTimeout(() => {
           setPage(1);
@@ -247,7 +234,6 @@ export const PatientsPage: React.FC = () => {
     setPage(1);
     setSortColumn((current) => {
       if (current === column) {
-        // toggle direction when clicking the same column
         setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
         return current;
       }
@@ -255,7 +241,6 @@ export const PatientsPage: React.FC = () => {
       setSortDirection('asc');
       return column;
     });
-    // clear cache when sorting strategy changes so we don't reuse stale ordering
     cacheRef.current.clear();
   };
 
@@ -290,24 +275,13 @@ export const PatientsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    // Reset to first page and clear cache when global page size changes.
     setPage(1);
     cacheRef.current.clear();
   }, [pageSize]);
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-tight text-neutral-900 sm:text-2xl dark:text-neutral-50">
-          Patients
-        </h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          Overview of all patients in the system.
-        </p>
-      </div>
-
-      {/* Search & Stats */}
+    <div className="space-y-4">
+      {/* Search */}
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <form className="flex w-full items-center gap-2 sm:max-w-md" onSubmit={handleSearchSubmit}>
           <div className="relative flex-1">
@@ -317,12 +291,7 @@ export const PatientsPage: React.FC = () => {
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
               placeholder="Search by name or email"
@@ -348,7 +317,7 @@ export const PatientsPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Error Message */}
+      {/* Error */}
       {error && (
         <div className="flex items-center gap-2 rounded-lg bg-red-50 p-3 text-sm text-red-600 dark:bg-red-950/50 dark:text-red-400">
           <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -358,7 +327,7 @@ export const PatientsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Mobile View - Card Layout */}
+      {/* Mobile View */}
       <div className="space-y-3 sm:hidden">
         {isLoading ? (
           Array.from({ length: 5 }).map((_, index) => <CardSkeleton key={index} />)
@@ -371,35 +340,23 @@ export const PatientsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Desktop View - Table Layout */}
+      {/* Desktop View */}
       <div className="hidden overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm sm:block dark:border-neutral-800 dark:bg-neutral-900">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900/50">
               <tr>
-                <th className="px-3 py-3 text-left sm:px-4">
-                  {renderSortableHeader('Name', 'name')}
-                </th>
+                <th className="px-3 py-3 text-left sm:px-4">{renderSortableHeader('Name', 'name')}</th>
                 <th className="hidden px-3 py-3 text-left sm:table-cell sm:px-4">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                    Phone
-                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Phone</span>
                 </th>
                 <th className="hidden px-3 py-3 text-left md:table-cell sm:px-4">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                    Date of birth
-                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Date of birth</span>
                 </th>
-                <th className="hidden px-3 py-3 text-left lg:table-cell sm:px-4">
-                  {renderSortableHeader('Registered', 'registrationDate')}
-                </th>
-                <th className="px-3 py-3 text-left sm:px-4">
-                  {renderSortableHeader('Status', 'intakeStatus')}
-                </th>
+                <th className="hidden px-3 py-3 text-left lg:table-cell sm:px-4">{renderSortableHeader('Registered', 'registrationDate')}</th>
+                <th className="px-3 py-3 text-left sm:px-4">{renderSortableHeader('Status', 'intakeStatus')}</th>
                 <th className="hidden px-3 py-3 text-left xl:table-cell sm:px-4">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
-                    Sex
-                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Sex</span>
                 </th>
               </tr>
             </thead>
@@ -416,7 +373,6 @@ export const PatientsPage: React.FC = () => {
                 patients.map((patient) => {
                   const fullName = patient.name.full || 'N/A';
                   const email = patient.email || 'No email';
-
                   const intakeStatus = patient.intake.status;
                   const intakeClasses =
                     intakeStatus === 'completed'
@@ -426,40 +382,25 @@ export const PatientsPage: React.FC = () => {
                       : 'border-neutral-300 text-neutral-600 bg-neutral-50 dark:border-neutral-600 dark:text-neutral-400 dark:bg-neutral-800';
 
                   return (
-                    <tr
-                      key={patient.id}
-                      className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50"
-                    >
+                    <tr key={patient.id} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
                       <td className="px-3 py-3 sm:px-4">
                         <div className="flex flex-col">
-                          <span className="font-medium text-neutral-900 dark:text-neutral-50">
-                            {fullName}
-                          </span>
-                          <span className="text-xs text-neutral-500 dark:text-neutral-400">
-                            {email}
-                          </span>
+                          <span className="font-medium text-neutral-900 dark:text-neutral-50">{fullName}</span>
+                          <span className="text-xs text-neutral-500 dark:text-neutral-400">{email}</span>
                         </div>
                       </td>
                       <td className="hidden px-3 py-3 text-neutral-700 sm:table-cell sm:px-4 dark:text-neutral-200">
                         {patient.phone || 'N/A'}
                       </td>
                       <td className="hidden px-3 py-3 text-neutral-700 md:table-cell sm:px-4 dark:text-neutral-200">
-                        {patient.dateOfBirth
-                          ? new Date(patient.dateOfBirth).toLocaleDateString()
-                          : 'N/A'}
+                        {patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="hidden px-3 py-3 text-neutral-700 lg:table-cell sm:px-4 dark:text-neutral-200">
-                        {patient.registrationDate
-                          ? new Date(patient.registrationDate).toLocaleDateString()
-                          : 'N/A'}
+                        {patient.registrationDate ? new Date(patient.registrationDate).toLocaleDateString() : 'N/A'}
                       </td>
                       <td className="px-3 py-3 sm:px-4">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase ${intakeClasses}`}
-                        >
-                          {patient.intake.step
-                            ? patient.intake.step.replace(/_/g, ' ')
-                            : 'Not started'}
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase ${intakeClasses}`}>
+                          {patient.intake.step ? patient.intake.step.replace(/_/g, ' ') : 'Not started'}
                         </span>
                       </td>
                       <td className="hidden px-3 py-3 text-neutral-700 xl:table-cell sm:px-4 dark:text-neutral-200">
@@ -476,9 +417,7 @@ export const PatientsPage: React.FC = () => {
 
       {/* Pagination */}
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-xs text-neutral-500 dark:text-neutral-400">
-          Page {page} of {totalPages}
-        </div>
+        <div className="text-xs text-neutral-500 dark:text-neutral-400">Page {page} of {totalPages}</div>
         <div className="flex gap-2">
           <button
             type="button"
