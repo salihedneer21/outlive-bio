@@ -8,7 +8,13 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_ANON_KEY: z.string().optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional()
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  // Base URL for the public patient portal (e.g. https://outlive.bio).
+  // Used for generating impersonation links from the admin backend.
+  PATIENT_PORTAL_BASE_URL: z.string().url().optional(),
+  TELEGRA_EMAIL: z.string().optional(),
+  TELEGRA_PASSWORD: z.string().optional(),
+  TELEGRA_BASE_URL: z.string().url().optional()
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -20,4 +26,3 @@ if (!parsedEnv.success) {
 }
 
 export const env = parsedEnv.data;
-
