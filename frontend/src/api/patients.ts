@@ -1,5 +1,11 @@
 import { apiFetch } from './client';
-import type { AdminPatientsResult, AdminPatientsStats } from '@outlive/shared';
+import type {
+  AdminComprehensiveIntake,
+  AdminPatient,
+  AdminPatientProfile,
+  AdminPatientsResult,
+  AdminPatientsStats
+} from '@outlive/shared';
 
 export interface ListPatientsParams {
   page?: number;
@@ -27,6 +33,22 @@ export interface PatientStatsResponse {
 export interface ImpersonatePatientResponse {
   data: {
     url: string;
+  };
+  message: string;
+}
+
+export interface PatientProfileResponse {
+  data: {
+    patient: AdminPatient;
+    profile: AdminPatientProfile | null;
+  };
+  message: string;
+}
+
+export interface PatientComprehensiveIntakeResponse {
+  data: {
+    patient: AdminPatient;
+    comprehensiveIntake: AdminComprehensiveIntake | null;
   };
   message: string;
 }
@@ -70,4 +92,55 @@ export const impersonatePatient = async (
   return apiFetch<ImpersonatePatientResponse>(path, {
     method: 'POST'
   });
+};
+
+const normalizeStringArray = (value: unknown): string[] | null => {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item));
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.map((item) => String(item));
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
+
+export const getPatientProfile = async (
+  patientId: string
+): Promise<PatientProfileResponse> => {
+  const path = `/admin/patients/${patientId}/profile`;
+
+  return apiFetch<PatientProfileResponse>(path, {
+    method: 'GET'
+  });
+};
+
+export const getPatientComprehensiveIntake = async (
+  patientId: string
+): Promise<PatientComprehensiveIntakeResponse> => {
+  const path = `/admin/patients/${patientId}/comprehensive-intake`;
+
+  const response = await apiFetch<PatientComprehensiveIntakeResponse>(path, {
+    method: 'GET'
+  });
+
+  const ci = response.data.comprehensiveIntake;
+
+  if (ci) {
+    ci.healthPriorities = normalizeStringArray(ci.healthPriorities as unknown);
+    ci.sleepIssues = normalizeStringArray(ci.sleepIssues as unknown);
+    ci.medicalConditions = normalizeStringArray(ci.medicalConditions as unknown);
+    ci.screeningsCompleted = normalizeStringArray(ci.screeningsCompleted as unknown);
+    ci.uploadedLabIds = normalizeStringArray(ci.uploadedLabIds as unknown);
+  }
+
+  return response;
 };

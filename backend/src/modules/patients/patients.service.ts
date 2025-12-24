@@ -64,10 +64,10 @@ interface ComprehensiveIntakeRow {
   strength_days_per_week: number | null;
   mobility_days_per_week: number | null;
   alcohol_frequency: string | null;
-  'health_priorities[]': string[] | null;
+  health_priorities: string[] | null;
   priorities_reason: string | null;
   sleep_quality: string | null;
-  'sleep_issues[]': string[] | null;
+  sleep_issues: string[] | null;
   current_diet: string | null;
   diet_other: string | null;
   experience_expectations: string | null;
@@ -190,10 +190,10 @@ const mapComprehensiveIntakeRowToAdmin = (
     strengthDaysPerWeek: row.strength_days_per_week,
     mobilityDaysPerWeek: row.mobility_days_per_week,
     alcoholFrequency: row.alcohol_frequency,
-    healthPriorities: row['health_priorities[]'],
+    healthPriorities: row.health_priorities,
     prioritiesReason: row.priorities_reason,
     sleepQuality: row.sleep_quality,
-    sleepIssues: row['sleep_issues[]'],
+    sleepIssues: row.sleep_issues,
     currentDiet: row.current_diet,
     dietOther: row.diet_other,
     experienceExpectations: row.experience_expectations,

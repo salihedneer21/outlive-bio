@@ -4,6 +4,7 @@ import { usePreferences } from '@/preferences/PreferencesContext';
 import type { AdminPatient, AdminPatientsResult } from '@outlive/shared';
 import { useToast } from '@/components/Toaster';
 import { Modal } from '@/components/Modal';
+import { PatientProfilePanel } from './PatientProfilePanel';
 
 type SortColumn = 'name' | 'registrationDate' | 'intakeStatus' | null;
 type SortDirection = 'asc' | 'desc';
@@ -63,10 +64,11 @@ const CardSkeleton: React.FC = () => (
   </div>
 );
 
-const PatientCard: React.FC<{ patient: AdminPatient; onView: (patient: AdminPatient) => void }> = ({
-  patient,
-  onView
-}) => {
+const PatientCard: React.FC<{
+  patient: AdminPatient;
+  onViewDetails: (patient: AdminPatient) => void;
+  onViewPortal: (patient: AdminPatient) => void;
+}> = ({ patient, onViewDetails, onViewPortal }) => {
   const fullName = patient.name.full || 'N/A';
   const email = patient.email || 'No email';
   const intakeStatus = patient.intake.status;
@@ -111,10 +113,32 @@ const PatientCard: React.FC<{ patient: AdminPatient; onView: (patient: AdminPati
           </div>
         </div>
       </div>
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex items-center justify-between">
         <button
           type="button"
-          onClick={() => onView(patient)}
+          onClick={() => onViewPortal(patient)}
+          className="inline-flex h-8 items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+          title="View patient portal"
+        >
+          <svg className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          Portal
+        </button>
+        <button
+          type="button"
+          onClick={() => onViewDetails(patient)}
           className="inline-flex h-8 items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
         >
           <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,6 +179,8 @@ export const PatientList: React.FC = () => {
   const [isImpersonationModalOpen, setIsImpersonationModalOpen] = useState(false);
   const [isImpersonationLoading, setIsImpersonationLoading] = useState(false);
   const [impersonationError, setImpersonationError] = useState<string | null>(null);
+  const [detailPatient, setDetailPatient] = useState<AdminPatient | null>(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const sortPatients = useCallback(
     (items: AdminPatient[]): AdminPatient[] => {
@@ -280,10 +306,15 @@ export const PatientList: React.FC = () => {
     cacheRef.current.clear();
   };
 
-  const handleViewPatient = (patient: AdminPatient) => {
+  const handleViewPortal = (patient: AdminPatient) => {
     setImpersonationTarget(patient);
     setImpersonationError(null);
     setIsImpersonationModalOpen(true);
+  };
+
+  const handleViewDetails = (patient: AdminPatient) => {
+    setDetailPatient(patient);
+    setIsPanelOpen(true);
   };
 
   const handleConfirmImpersonation = async () => {
@@ -412,7 +443,12 @@ export const PatientList: React.FC = () => {
           </div>
         ) : (
           patients.map((patient) => (
-            <PatientCard key={patient.id} patient={patient} onView={handleViewPatient} />
+            <PatientCard
+              key={patient.id}
+              patient={patient}
+              onViewDetails={handleViewDetails}
+              onViewPortal={handleViewPortal}
+            />
           ))
         )}
       </div>
@@ -493,10 +529,17 @@ export const PatientList: React.FC = () => {
                         {patient.sexAtBirth ? patient.sexAtBirth.toUpperCase() : 'N/A'}
                       </td>
                       <td className="px-3 py-3 sm:px-4">
-                        <div className="flex justify-end">
+                        <div className="flex items-center justify-end gap-2">
                           <button
                             type="button"
-                            onClick={() => handleViewPatient(patient)}
+                            onClick={() => handleViewDetails(patient)}
+                            className="inline-flex h-8 items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                          >
+                            Details
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleViewPortal(patient)}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-50"
                             title="View patient portal"
                           >
@@ -525,6 +568,16 @@ export const PatientList: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Patient Profile Panel (Right Sidebar) */}
+      <PatientProfilePanel
+        patient={detailPatient}
+        isOpen={isPanelOpen}
+        onClose={() => {
+          setIsPanelOpen(false);
+          setDetailPatient(null);
+        }}
+      />
 
       {/* Impersonation confirmation */}
       <Modal
