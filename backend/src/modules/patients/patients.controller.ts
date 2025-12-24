@@ -1,5 +1,11 @@
 import type { Request, Response } from 'express';
-import { getAdminPatients, getAdminPatientsStats, generatePatientImpersonationLink } from './patients.service';
+import {
+  generatePatientImpersonationLink,
+  getAdminPatientComprehensiveIntake,
+  getAdminPatientProfile,
+  getAdminPatients,
+  getAdminPatientsStats
+} from './patients.service';
 import type { AdminPatientsQuery } from './patients.types';
 import type { ApiResponse } from '../../types/app';
 
@@ -36,6 +42,75 @@ export const listAdminPatients = async (req: Request, res: Response): Promise<vo
   } catch (error) {
     res.status(500).json({
       message: error instanceof Error ? error.message : 'Failed to fetch patients'
+    });
+  }
+};
+
+export const getAdminPatientProfileHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const patientId = req.params.id;
+
+  if (!patientId) {
+    res.status(400).json({ message: 'Patient id is required' });
+    return;
+  }
+
+  try {
+    const result = await getAdminPatientProfile(patientId);
+
+    const response: ApiResponse<typeof result> = {
+      data: result,
+      message: 'Patient profile fetched successfully'
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+
+    if (code === 'NOT_FOUND') {
+      res.status(404).json({ message: 'Patient not found' });
+      return;
+    }
+
+    res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to fetch patient profile'
+    });
+  }
+};
+
+export const getAdminPatientComprehensiveIntakeHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const patientId = req.params.id;
+
+  if (!patientId) {
+    res.status(400).json({ message: 'Patient id is required' });
+    return;
+  }
+
+  try {
+    const result = await getAdminPatientComprehensiveIntake(patientId);
+
+    const response: ApiResponse<typeof result> = {
+      data: result,
+      message: 'Patient comprehensive intake fetched successfully'
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+
+    if (code === 'NOT_FOUND') {
+      res.status(404).json({ message: 'Patient not found' });
+      return;
+    }
+
+    res.status(500).json({
+      message:
+        error instanceof Error ? error.message : 'Failed to fetch patient comprehensive intake'
     });
   }
 };

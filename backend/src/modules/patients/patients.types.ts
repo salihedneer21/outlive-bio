@@ -68,3 +68,92 @@ export interface AdminPatientsStats {
   };
   dailyRegistrations: AdminPatientsDailyRegistrationsPoint[];
 }
+
+export interface AdminPatientProfile {
+  userId: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  email: string | null;
+  dateOfBirth: string | null;
+  sexAtBirth: string | null;
+  address: {
+    street: string | null;
+    city: string | null;
+    state: string | null;
+    zipCode: string | null;
+  };
+  weight: number | null;
+  heightInches: number | null;
+  driversLicenseUrl: string | null;
+  profilePictureUrl: string | null;
+  intakeStep: IntakeStep;
+  intakeCompletedAt: string | null;
+  consents: {
+    refundPolicyConsentDate: string | null;
+    termsConditionsConsentDate: string | null;
+    privacyPolicyConsentDate: string | null;
+    consentSignatureUrl: string | null;
+  };
+  lab: {
+    labProvider: string | null;
+    requiresAtHomePhlebotomy: boolean;
+    phlebotomyEligible: boolean;
+    selectedPhlebotomy: boolean;
+    subscriptionTier: string | null;
+    preSelectedTestId: string | null;
+    testOrdered: boolean;
+    testOrderedAt: string | null;
+  };
+}
+
+export interface AdminComprehensiveIntake {
+  id: string;
+  userId: string;
+  occupation: string | null;
+  typicalWeekdaySchedule: string | null;
+  travelFrequently: boolean | null;
+  cardioDaysPerWeek: number | null;
+  strengthDaysPerWeek: number | null;
+  mobilityDaysPerWeek: number | null;
+  alcoholFrequency: string | null;
+  healthPriorities: string[] | null;
+  prioritiesReason: string | null;
+  sleepQuality: string | null;
+  sleepIssues: string[] | null;
+  currentDiet: string | null;
+  dietOther: string | null;
+  experienceExpectations: string | null;
+  involvementLevel: string | null;
+  dataResearchPermission: boolean | null;
+  stressLevel: string | null;
+  completed: boolean;
+  completedAt: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  height: string | null;
+  heightUnit: string | null;
+  heightFeet: string | null;
+  heightInches: string | null;
+  currentWeight: string | null;
+  weightUnit: string | null;
+  dietHistory: string | null;
+  nutritionSelfAssessment: string | null;
+  nicotineUse: boolean | null;
+  nicotineType: string | null;
+  nicotineFrequency: string | null;
+  alcoholDrinksPerDay: string | null;
+  alcoholBingeDrinking: string | null;
+  otherHealthPriority: string | null;
+  biggestDifficulties: string | null;
+  medicalConditions: unknown[] | null;
+  cancerType: string | null;
+  otherConditions: string | null;
+  familyMembers: unknown[] | null;
+  lastPhysicalExam: string | null;
+  screeningsCompleted: unknown[] | null;
+  uploadedLabIds: unknown[] | null;
+  injuryHistory: string | null;
+  snoring: string | null;
+  otherMedicalCondition: string | null;
+}
