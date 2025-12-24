@@ -1,4 +1,5 @@
 import { getSupabaseServiceClient } from '@lib/supabase';
+import { env } from '@config/env';
 import type {
   AdminPatient,
   AdminPatientsDailyRegistrationsPoint,
@@ -330,4 +331,73 @@ export const getAdminPatientsStats = async (params?: {
     intakeStatusCounts,
     dailyRegistrations
   };
+};
+
+/**
+ * Generate a magic link that allows an admin to impersonate a patient
+ * and log into the public portal as that patient.
+ */
+export const generatePatientImpersonationLink = async (
+  patientId: string,
+  initiatedByUserId?: string
+): Promise<string> => {
+  const supabase = getSupabaseServiceClient();
+
+  const { data: patient, error: patientError } = await supabase
+    .from('patients')
+    .select('id, email')
+    .eq('id', patientId)
+    .single();
+
+  if (patientError || !patient) {
+    const err: Error & { code?: string } = new Error('Patient not found');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+
+  if (!patient.email) {
+    const err: Error & { code?: string } = new Error('Patient does not have an email address');
+    err.code = 'NO_EMAIL';
+    throw err;
+  }
+
+  let redirectTo: string | undefined;
+
+  if (env.PATIENT_PORTAL_BASE_URL) {
+    try {
+      const url = new URL('/patient/dashboard', env.PATIENT_PORTAL_BASE_URL);
+      if (initiatedByUserId) {
+        url.searchParams.set('impersonatedBy', initiatedByUserId);
+      }
+      redirectTo = url.toString();
+    } catch {
+      // If the URL construction fails for any reason, fall back to Supabase default redirect.
+      redirectTo = undefined;
+    }
+  }
+
+  const payload: any = {
+    type: 'magiclink',
+    email: patient.email
+  };
+
+  if (redirectTo) {
+    payload.options = { redirectTo };
+  }
+
+  const {
+    data: linkData,
+    error: linkError
+  } = await (supabase.auth.admin.generateLink(payload) as Promise<{
+    data: { properties?: { action_link?: string | null } } | null;
+    error: Error | null;
+  }>);
+
+  if (linkError || !linkData?.properties?.action_link) {
+    const err: Error & { code?: string } = new Error('Failed to generate impersonation link');
+    err.code = 'LINK_ERROR';
+    throw err;
+  }
+
+  return linkData.properties.action_link;
 };

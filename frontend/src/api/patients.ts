@@ -24,6 +24,13 @@ export interface PatientStatsResponse {
   message: string;
 }
 
+export interface ImpersonatePatientResponse {
+  data: {
+    url: string;
+  };
+  message: string;
+}
+
 export const listPatients = async (params: ListPatientsParams = {}): Promise<ListPatientsResponse> => {
   const searchParams = new URLSearchParams();
 
@@ -52,5 +59,15 @@ export const getPatientStats = async (params: PatientStatsParams = {}): Promise<
 
   return apiFetch<PatientStatsResponse>(path, {
     method: 'GET'
+  });
+};
+
+export const impersonatePatient = async (
+  patientId: string
+): Promise<ImpersonatePatientResponse> => {
+  const path = `/admin/patients/${patientId}/impersonate`;
+
+  return apiFetch<ImpersonatePatientResponse>(path, {
+    method: 'POST'
   });
 };

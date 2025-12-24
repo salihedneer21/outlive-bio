@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { listPatients } from '@/api/patients';
+import { listPatients, impersonatePatient } from '@/api/patients';
 import { usePreferences } from '@/preferences/PreferencesContext';
 import type { AdminPatient, AdminPatientsResult } from '@outlive/shared';
+import { useToast } from '@/components/Toaster';
+import { Modal } from '@/components/Modal';
 
 type SortColumn = 'name' | 'registrationDate' | 'intakeStatus' | null;
 type SortDirection = 'asc' | 'desc';
@@ -33,6 +35,9 @@ const TableSkeletonRow: React.FC = () => (
     <td className="hidden px-3 py-3 xl:table-cell sm:px-4">
       <Skeleton className="h-4 w-10" />
     </td>
+    <td className="px-3 py-3 sm:px-4">
+      <Skeleton className="h-8 w-8 rounded-full" />
+    </td>
   </tr>
 );
 
@@ -58,7 +63,10 @@ const CardSkeleton: React.FC = () => (
   </div>
 );
 
-const PatientCard: React.FC<{ patient: AdminPatient }> = ({ patient }) => {
+const PatientCard: React.FC<{ patient: AdminPatient; onView: (patient: AdminPatient) => void }> = ({
+  patient,
+  onView
+}) => {
   const fullName = patient.name.full || 'N/A';
   const email = patient.email || 'No email';
   const intakeStatus = patient.intake.status;
@@ -103,12 +111,36 @@ const PatientCard: React.FC<{ patient: AdminPatient }> = ({ patient }) => {
           </div>
         </div>
       </div>
+      <div className="mt-3 flex justify-end">
+        <button
+          type="button"
+          onClick={() => onView(patient)}
+          className="inline-flex h-8 items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+        >
+          <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+            />
+          </svg>
+          View
+        </button>
+      </div>
     </div>
   );
 };
 
 export const PatientList: React.FC = () => {
   const { pageSize } = usePreferences();
+  const toast = useToast();
   const [patients, setPatients] = useState<AdminPatient[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -119,6 +151,10 @@ export const PatientList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const cacheRef = useRef<Map<string, AdminPatientsResult>>(new Map());
+  const [impersonationTarget, setImpersonationTarget] = useState<AdminPatient | null>(null);
+  const [isImpersonationModalOpen, setIsImpersonationModalOpen] = useState(false);
+  const [isImpersonationLoading, setIsImpersonationLoading] = useState(false);
+  const [impersonationError, setImpersonationError] = useState<string | null>(null);
 
   const sortPatients = useCallback(
     (items: AdminPatient[]): AdminPatient[] => {
@@ -244,6 +280,45 @@ export const PatientList: React.FC = () => {
     cacheRef.current.clear();
   };
 
+  const handleViewPatient = (patient: AdminPatient) => {
+    setImpersonationTarget(patient);
+    setImpersonationError(null);
+    setIsImpersonationModalOpen(true);
+  };
+
+  const handleConfirmImpersonation = async () => {
+    if (!impersonationTarget) return;
+
+    try {
+      setImpersonationError(null);
+      setIsImpersonationLoading(true);
+
+      const response = await impersonatePatient(impersonationTarget.id);
+      const url = response?.data?.url;
+
+      if (!url) {
+        const message = 'Impersonation link not available';
+        setImpersonationError(message);
+        toast.error(message);
+        return;
+      }
+
+      window.open(url, '_blank', 'noopener,noreferrer');
+      toast.success('Opened patient portal');
+      setIsImpersonationModalOpen(false);
+      setImpersonationTarget(null);
+    } catch (err) {
+      const message =
+        typeof err === 'object' && err && 'message' in err
+          ? (err as { message?: string }).message ?? 'Failed to open patient portal'
+          : 'Failed to open patient portal';
+      setImpersonationError(message);
+      toast.error(message);
+    } finally {
+      setIsImpersonationLoading(false);
+    }
+  };
+
   const renderSortableHeader = (label: string, column: SortColumn) => {
     const isActive = sortColumn === column;
     const isAsc = sortDirection === 'asc';
@@ -336,7 +411,9 @@ export const PatientList: React.FC = () => {
             No patients found.
           </div>
         ) : (
-          patients.map((patient) => <PatientCard key={patient.id} patient={patient} />)
+          patients.map((patient) => (
+            <PatientCard key={patient.id} patient={patient} onView={handleViewPatient} />
+          ))
         )}
       </div>
 
@@ -353,10 +430,19 @@ export const PatientList: React.FC = () => {
                 <th className="hidden px-3 py-3 text-left md:table-cell sm:px-4">
                   <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Date of birth</span>
                 </th>
-                <th className="hidden px-3 py-3 text-left lg:table-cell sm:px-4">{renderSortableHeader('Registered', 'registrationDate')}</th>
-                <th className="px-3 py-3 text-left sm:px-4">{renderSortableHeader('Status', 'intakeStatus')}</th>
+                <th className="hidden px-3 py-3 text-left lg:table-cell sm:px-4">
+                  {renderSortableHeader('Registered', 'registrationDate')}
+                </th>
+                <th className="px-3 py-3 text-left sm:px-4">
+                  {renderSortableHeader('Status', 'intakeStatus')}
+                </th>
                 <th className="hidden px-3 py-3 text-left xl:table-cell sm:px-4">
                   <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">Sex</span>
+                </th>
+                <th className="px-3 py-3 text-right sm:px-4">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+                    Actions
+                  </span>
                 </th>
               </tr>
             </thead>
@@ -365,7 +451,7 @@ export const PatientList: React.FC = () => {
                 Array.from({ length: 8 }).map((_, index) => <TableSkeletonRow key={index} />)
               ) : patients.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-neutral-500 dark:text-neutral-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-neutral-500 dark:text-neutral-400">
                     No patients found.
                   </td>
                 </tr>
@@ -406,6 +492,31 @@ export const PatientList: React.FC = () => {
                       <td className="hidden px-3 py-3 text-neutral-700 xl:table-cell sm:px-4 dark:text-neutral-200">
                         {patient.sexAtBirth ? patient.sexAtBirth.toUpperCase() : 'N/A'}
                       </td>
+                      <td className="px-3 py-3 sm:px-4">
+                        <div className="flex justify-end">
+                          <button
+                            type="button"
+                            onClick={() => handleViewPatient(patient)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-50"
+                            title="View patient portal"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })
@@ -414,6 +525,46 @@ export const PatientList: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {/* Impersonation confirmation */}
+      <Modal
+        isOpen={isImpersonationModalOpen}
+        onClose={() => {
+          if (isImpersonationLoading) return;
+          setIsImpersonationModalOpen(false);
+          setImpersonationTarget(null);
+          setImpersonationError(null);
+        }}
+        title="View patient portal"
+        message={
+          <div className="space-y-3">
+            <p>
+              You are about to access the patient portal as this patient. This view is restricted
+              and should only be used when absolutely necessary for clinical care or troubleshooting.
+            </p>
+            {impersonationTarget && (
+              <p className="rounded-md bg-neutral-50 p-2 text-xs text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
+                <span className="font-semibold">Patient:</span>{' '}
+                {impersonationTarget.name.full || impersonationTarget.email || impersonationTarget.id}
+              </p>
+            )}
+            <ul className="list-disc space-y-1 pl-5 text-sm">
+              <li>All access and activity will be logged and auditable.</li>
+              <li>Use this feature only when strictly necessary.</li>
+              <li>Obtain approval from your supervising admin or super admin if required.</li>
+            </ul>
+            <p className="text-sm font-medium text-red-600 dark:text-red-400">
+              Do not use this access for personal viewing, curiosity, or outside of approved workflows.
+            </p>
+          </div>
+        }
+        confirmLabel="Continue"
+        cancelLabel="Cancel"
+        variant="warning"
+        isLoading={isImpersonationLoading}
+        onConfirm={handleConfirmImpersonation}
+        error={impersonationError}
+      />
 
       {/* Pagination */}
       <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">

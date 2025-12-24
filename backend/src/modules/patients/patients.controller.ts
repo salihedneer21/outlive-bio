@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { getAdminPatients, getAdminPatientsStats } from './patients.service';
+import { getAdminPatients, getAdminPatientsStats, generatePatientImpersonationLink } from './patients.service';
 import type { AdminPatientsQuery } from './patients.types';
 import type { ApiResponse } from '../../types/app';
 
@@ -59,6 +59,51 @@ export const getAdminPatientsStatsHandler = async (
   } catch (error) {
     res.status(500).json({
       message: error instanceof Error ? error.message : 'Failed to fetch patient stats'
+    });
+  }
+};
+
+export const impersonateAdminPatientHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const patientId = req.params.id;
+
+  if (!patientId) {
+    res.status(400).json({ message: 'Patient id is required' });
+    return;
+  }
+
+  const authUser = (res.locals as {
+    authUser?: { id: string; email: string | null; role: string | null };
+  }).authUser;
+
+  const initiatedByUserId = authUser?.id;
+
+  try {
+    const url = await generatePatientImpersonationLink(patientId, initiatedByUserId);
+
+    const response: ApiResponse<{ url: string }> = {
+      data: { url },
+      message: 'Impersonation link generated successfully'
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+
+    if (code === 'NOT_FOUND') {
+      res.status(404).json({ message: 'Patient not found' });
+      return;
+    }
+
+    if (code === 'NO_EMAIL') {
+      res.status(400).json({ message: 'Patient does not have an email address' });
+      return;
+    }
+
+    res.status(500).json({
+      message: error instanceof Error ? error.message : 'Failed to generate impersonation link'
     });
   }
 };
