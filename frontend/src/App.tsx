@@ -5,11 +5,12 @@ import { PatientsPage } from '@/pages/patients';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { CategoriesPage } from '@/pages/categories';
 import { ProductsPage } from '@/pages/products';
+import { LogsPage } from '@/pages/logs';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { PreferencesProvider, usePreferences } from './preferences/PreferencesContext';
 import { ToastProvider } from './components/Toaster';
 
-type AdminRoute = 'dashboard' | 'patients' | 'categories' | 'products';
+type AdminRoute = 'dashboard' | 'patients' | 'categories' | 'products' | 'logs';
 
 const AdminNavbar: React.FC<{
   activeRoute: AdminRoute;
@@ -176,6 +177,22 @@ const AdminNavbar: React.FC<{
                   </span>
                   <span className="font-medium">Products</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleRouteChange('logs')}
+                  className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                    activeRoute === 'logs'
+                      ? 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50'
+                      : 'text-neutral-600 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                  }`}
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-900/30">
+                    <svg className="h-4 w-4 text-slate-600 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  </span>
+                  <span className="font-medium">Logs</span>
+                </button>
               </nav>
 
               {/* Settings */}
@@ -327,6 +344,18 @@ const AdminNavbar: React.FC<{
               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
               Products
             </button>
+            <button
+              type="button"
+              onClick={() => onRouteChange('logs')}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all ${
+                activeRoute === 'logs'
+                  ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-900 dark:text-neutral-50'
+                  : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50'
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
+              Logs
+            </button>
           </div>
         </div>
 
@@ -453,6 +482,7 @@ const AppInner: React.FC = () => {
         {route === 'patients' && <PatientsPage />}
         {route === 'categories' && <CategoriesPage />}
         {route === 'products' && <ProductsPage />}
+        {route === 'logs' && <LogsPage />}
       </main>
     </div>
   );

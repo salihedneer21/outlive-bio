@@ -7,6 +7,7 @@ import { productsRouter } from '@modules/products/products.routes';
 import { telegraRouter } from '@modules/telegra/telegra.routes';
 import { patientNotesRouter } from '@modules/patient-notes/patientNotes.routes';
 import { patientInsightsRouter } from '@modules/patient-insights/patientInsights.routes';
+import { logsRouter } from '@modules/logs/logs.routes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/', productsRouter);
 router.use('/', telegraRouter);
 router.use('/', patientNotesRouter);
 router.use('/', patientInsightsRouter);
+router.use('/', logsRouter);
 
 export const apiRouter = router;

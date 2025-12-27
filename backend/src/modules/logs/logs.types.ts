@@ -1,3 +1,9 @@
+import type {
+  AdminImpersonationLog,
+  AdminImpersonationLogsQuery,
+  AdminImpersonationLogsResult
+} from '@outlive/shared';
+
 export type LogType = 'impersonation_login' | string;
 
 export interface CreateLogInput {
@@ -30,3 +36,7 @@ export interface CreateImpersonationLoginLogInput {
   actorRole: string | null;
   actorEmail: string | null;
 }
+
+export type AdminImpersonationLogsQueryDto = AdminImpersonationLogsQuery;
+export type AdminImpersonationLogsResultDto = AdminImpersonationLogsResult;
+export type AdminImpersonationLogDto = AdminImpersonationLog;
