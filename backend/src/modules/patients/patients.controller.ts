@@ -153,10 +153,25 @@ export const impersonateAdminPatientHandler = async (
     authUser?: { id: string; email: string | null; role: string | null };
   }).authUser;
 
-  const initiatedByUserId = authUser?.id;
+  const actor = authUser
+    ? {
+        id: authUser.id,
+        email: authUser.email ?? null,
+        role: authUser.role ?? null
+      }
+    : undefined;
+
+  const ipAddressHeader =
+    (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? null;
+  const ipAddress = ipAddressHeader || req.ip || null;
+  const userAgent =
+    typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : null;
 
   try {
-    const url = await generatePatientImpersonationLink(patientId, initiatedByUserId);
+    const url = await generatePatientImpersonationLink(patientId, actor, {
+      ipAddress,
+      userAgent
+    });
 
     const response: ApiResponse<{ url: string }> = {
       data: { url },

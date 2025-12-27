@@ -1,4 +1,5 @@
 import { getSupabaseServiceClient } from '@lib/supabase';
+import { createImpersonationLoginLog } from '@modules/logs/logs.service';
 import { env } from '@config/env';
 import type {
   AdminComprehensiveIntake,
@@ -744,12 +745,13 @@ export const getAdminPatientComprehensiveIntake = async (
  */
 export const generatePatientImpersonationLink = async (
   patientId: string,
-  initiatedByUserId?: string
+  actor?: { id: string; email: string | null; role: string | null },
+  requestMeta?: { ipAddress?: string | null; userAgent?: string | null }
 ): Promise<string> => {
   const supabase = getSupabaseServiceClient();
   const { data: patient, error: patientError } = await supabase
     .from('patients')
-    .select('id, email')
+    .select('id, email, user_id')
     .eq('id', patientId)
     .single();
 
@@ -772,8 +774,8 @@ export const generatePatientImpersonationLink = async (
       // Build the final destination path in the patient portal
       const baseUrl = new URL(env.PATIENT_PORTAL_BASE_URL);
       const dashboardUrl = new URL('/patient/dashboard', baseUrl);
-      if (initiatedByUserId) {
-        dashboardUrl.searchParams.set('impersonatedBy', initiatedByUserId);
+      if (actor?.id) {
+        dashboardUrl.searchParams.set('impersonatedBy', actor.id);
       }
 
       // Route magic-link callbacks through the public auth page, which
@@ -815,5 +817,26 @@ export const generatePatientImpersonationLink = async (
     throw err;
   }
 
-  return linkData.properties.action_link;
+  const url = linkData.properties.action_link;
+
+  if (actor) {
+    try {
+      await createImpersonationLoginLog({
+        patientId: patient.id as string,
+        patientEmail: (patient.email as string) ?? null,
+        impersonatedUserId: (patient.user_id as string | null) ?? null,
+        impersonationUrl: url,
+        expiresAt: null,
+        ipAddress: requestMeta?.ipAddress ?? null,
+        userAgent: requestMeta?.userAgent ?? null,
+        actorUserId: actor.id,
+        actorRole: actor.role ?? null,
+        actorEmail: actor.email ?? null
+      });
+    } catch {
+      // Logging failures should not block impersonation
+    }
+  }
+
+  return url;
 };
