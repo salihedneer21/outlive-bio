@@ -3,8 +3,9 @@ import { createPortal } from 'react-dom';
 import type { AdminPatient, AdminComprehensiveIntake, AdminPatientProfile } from '@outlive/shared';
 import { getPatientComprehensiveIntake, getPatientProfile } from '@/api/patients';
 import { PatientNotesPanel } from './PatientNotesPanel';
+import { PatientInsightsPanel } from './PatientInsightsPanel';
 
-type PanelTab = 'profile' | 'notes' | 'chats' | 'care-plan' | 'labs' | 'files';
+type PanelTab = 'profile' | 'notes' | 'insights' | 'chats' | 'care-plan' | 'labs' | 'files';
 
 interface PatientProfilePanelProps {
   patient: AdminPatient | null;
@@ -783,43 +784,6 @@ export const PatientProfilePanel: React.FC<PatientProfilePanelProps> = ({
     );
   };
 
-  const renderTabContent = () => {
-    switch (activeTab) {
-      case 'profile':
-        return renderProfileTab();
-      case 'chats':
-        return (
-          <PlaceholderTab
-            title="Chats"
-            icon={<svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>}
-          />
-        );
-      case 'care-plan':
-        return (
-          <PlaceholderTab
-            title="Care Plan"
-            icon={<svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}
-          />
-        );
-      case 'labs':
-        return (
-          <PlaceholderTab
-            title="Lab Results"
-            icon={<svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>}
-          />
-        );
-      case 'files':
-        return (
-          <PlaceholderTab
-            title="Files"
-            icon={<svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" /></svg>}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   return createPortal(
     <>
       {/* Backdrop */}
@@ -908,6 +872,7 @@ export const PatientProfilePanel: React.FC<PatientProfilePanelProps> = ({
           <div className="flex">
             <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} label="Profile" />
             <TabButton active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} label="Notes" />
+            <TabButton active={activeTab === 'insights'} onClick={() => setActiveTab('insights')} label="Insights" />
             <TabButton active={activeTab === 'chats'} onClick={() => setActiveTab('chats')} label="Chats" count={0} />
             <TabButton active={activeTab === 'care-plan'} onClick={() => setActiveTab('care-plan')} label="Care Plan" />
             <TabButton active={activeTab === 'labs'} onClick={() => setActiveTab('labs')} label="Labs" />
@@ -922,6 +887,9 @@ export const PatientProfilePanel: React.FC<PatientProfilePanelProps> = ({
           </div>
           <div className={`flex-1 flex-col overflow-hidden ${activeTab === 'notes' ? 'flex' : 'hidden'}`}>
             {renderNotesTab()}
+          </div>
+          <div className={`flex-1 flex-col overflow-hidden ${activeTab === 'insights' ? 'flex' : 'hidden'}`}>
+            {patient && <PatientInsightsPanel patient={patient} />}
           </div>
           {activeTab === 'chats' && (
             <PlaceholderTab

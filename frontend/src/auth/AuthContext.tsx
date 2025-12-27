@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { logoutRequest, refreshRequest } from '@/api/auth';
+import { authEvents } from './authEvents';
 
 interface AuthUser {
   id: string;
@@ -27,18 +28,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [state, setState] = useState<AuthState>(initialState);
   const [hasTriedRefresh, setHasTriedRefresh] = useState(false);
 
-  const login = (user: AuthUser) => {
-    setState({
-      user
-    });
-  };
+  const login = useCallback((user: AuthUser) => {
+    setState({ user });
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     void logoutRequest().catch(() => {
       // ignore network/logout failures on client side
     });
     setState(initialState);
-  };
+  }, []);
+
+  // Subscribe to auth events from the API client
+  useEffect(() => {
+    const unsubscribe = authEvents.subscribe((event) => {
+      if (event === 'session-expired' || event === 'unauthorized') {
+        // Clear local state immediately - no need to call logout API
+        // since the session is already invalid
+        setState(initialState);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     // On first load, attempt to refresh using the HttpOnly cookie.
@@ -65,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     void run();
-  }, []);
+  }, [login]);
 
   return (
     <AuthContext.Provider

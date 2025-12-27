@@ -655,7 +655,8 @@ export const PatientNotesPanel: React.FC<PatientNotesPanelProps> = ({ patient, i
           }}
           previewOptions={{
             // Treat single newlines as hard line breaks in rendered markdown
-            remarkPlugins: [remarkBreaks],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            remarkPlugins: [remarkBreaks as any],
           }}
         />
       </div>

@@ -194,3 +194,35 @@ html.dark .notes-editor .w-md-editor-text-pre > code {
 html.dark .notes-editor .w-md-editor-preview {
   background-color: #171717 !important;
 }
+
+/* Simple rich-text styles for insights editor */
+.insight-editor:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.insight-editor a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.insight-editor a:hover {
+  color: #1d4ed8;
+}
+
+.insight-editor ul {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+
+.insight-editor ol {
+  margin: 0.25rem 0;
+  padding-left: 1.25rem;
+  list-style-type: decimal;
+}
+
+.insight-editor li {
+  margin: 0.125rem 0;
+}

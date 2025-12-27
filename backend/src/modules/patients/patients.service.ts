@@ -747,7 +747,6 @@ export const generatePatientImpersonationLink = async (
   initiatedByUserId?: string
 ): Promise<string> => {
   const supabase = getSupabaseServiceClient();
-
   const { data: patient, error: patientError } = await supabase
     .from('patients')
     .select('id, email')
@@ -770,11 +769,23 @@ export const generatePatientImpersonationLink = async (
 
   if (env.PATIENT_PORTAL_BASE_URL) {
     try {
-      const url = new URL('/patient/dashboard', env.PATIENT_PORTAL_BASE_URL);
+      // Build the final destination path in the patient portal
+      const baseUrl = new URL(env.PATIENT_PORTAL_BASE_URL);
+      const dashboardUrl = new URL('/patient/dashboard', baseUrl);
       if (initiatedByUserId) {
-        url.searchParams.set('impersonatedBy', initiatedByUserId);
+        dashboardUrl.searchParams.set('impersonatedBy', initiatedByUserId);
       }
-      redirectTo = url.toString();
+
+      // Route magic-link callbacks through the public auth page, which
+      // already knows how to handle Supabase hash-based tokens and then
+      // redirect back using the `redirect` query param.
+      const authUrl = new URL('/auth', baseUrl);
+      authUrl.searchParams.set(
+        'redirect',
+        `${dashboardUrl.pathname}${dashboardUrl.search}`
+      );
+
+      redirectTo = authUrl.toString();
     } catch {
       // If the URL construction fails for any reason, fall back to Supabase default redirect.
       redirectTo = undefined;
