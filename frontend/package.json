@@ -9,7 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "remark-breaks": "^3.0.3",
     "@outlive/shared": "workspace:*",
+    "@uiw/react-markdown-preview": "^5.1.5",
+    "@uiw/react-md-editor": "^4.0.11",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "recharts": "^3.6.0"

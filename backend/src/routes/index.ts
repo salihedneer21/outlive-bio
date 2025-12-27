@@ -5,6 +5,7 @@ import { patientsRouter } from '@modules/patients/patients.routes';
 import { categoriesRouter } from '@modules/categories/categories.routes';
 import { productsRouter } from '@modules/products/products.routes';
 import { telegraRouter } from '@modules/telegra/telegra.routes';
+import { patientNotesRouter } from '@modules/patient-notes/patientNotes.routes';
 
 const router = Router();
 
@@ -14,5 +15,6 @@ router.use('/', patientsRouter);
 router.use('/', categoriesRouter);
 router.use('/', productsRouter);
 router.use('/', telegraRouter);
+router.use('/', patientNotesRouter);
 
 export const apiRouter = router;

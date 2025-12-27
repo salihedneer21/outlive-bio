@@ -2,8 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import type { AdminPatient, AdminComprehensiveIntake, AdminPatientProfile } from '@outlive/shared';
 import { getPatientComprehensiveIntake, getPatientProfile } from '@/api/patients';
+import { PatientNotesPanel } from './PatientNotesPanel';
 
-type PanelTab = 'profile' | 'chats' | 'care-plan' | 'labs' | 'files';
+type PanelTab = 'profile' | 'notes' | 'chats' | 'care-plan' | 'labs' | 'files';
 
 interface PatientProfilePanelProps {
   patient: AdminPatient | null;
@@ -54,6 +55,53 @@ const formatHeight = (heightInches: number | null): string => {
 // ============================================================================
 // Sub-Components
 // ============================================================================
+
+const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`animate-pulse rounded bg-neutral-200 dark:bg-neutral-800 ${className}`} />
+);
+
+const ProfileSkeletonSection: React.FC<{ rows?: number }> = ({ rows = 4 }) => (
+  <div className="rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+    <div className="flex items-center gap-2 border-b border-neutral-100 px-4 py-3 dark:border-neutral-800">
+      <Skeleton className="h-4 w-4" />
+      <Skeleton className="h-3 w-24" />
+    </div>
+    <div className="p-4 space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex items-center justify-between">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-3 w-28" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const ProfileLoadingSkeleton: React.FC = () => (
+  <div className="flex-1 overflow-y-auto">
+    <div className="space-y-4 p-4">
+      <ProfileSkeletonSection rows={4} />
+      <ProfileSkeletonSection rows={6} />
+      <div className="rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="flex items-center gap-2 border-b border-neutral-100 px-4 py-3 dark:border-neutral-800">
+          <Skeleton className="h-4 w-4" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+        <div className="p-4">
+          <div className="grid grid-cols-3 gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex flex-col">
+                <Skeleton className="mb-2 h-3 w-20" />
+                <Skeleton className="aspect-[4/3] w-full rounded-lg" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+      <ProfileSkeletonSection rows={4} />
+    </div>
+  </div>
+);
 
 const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="flex items-start justify-between gap-4 py-2">
@@ -436,6 +484,16 @@ export const PatientProfilePanel: React.FC<PatientProfilePanelProps> = ({
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose, lightboxImage]);
 
+  // Lock body scroll when panel is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!patient || !isOpen) return null;
 
   const fullName = patient.name.full || 'Unknown';
@@ -446,16 +504,13 @@ export const PatientProfilePanel: React.FC<PatientProfilePanelProps> = ({
     not_started: 'bg-neutral-100 text-neutral-600 border-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:border-neutral-700'
   };
 
+  const renderNotesTab = () => {
+    return <PatientNotesPanel patient={patient} isActive={activeTab === 'notes'} />;
+  };
+
   const renderProfileTab = () => {
     if (isLoading) {
-      return (
-        <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-200 border-t-neutral-600 dark:border-neutral-700 dark:border-t-neutral-300" />
-            <span className="text-xs text-neutral-500">Loading...</span>
-          </div>
-        </div>
-      );
+      return <ProfileLoadingSkeleton />;
     }
 
     if (error) {
@@ -852,6 +907,7 @@ export const PatientProfilePanel: React.FC<PatientProfilePanelProps> = ({
         <div className="shrink-0 overflow-x-auto border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
           <div className="flex">
             <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} label="Profile" />
+            <TabButton active={activeTab === 'notes'} onClick={() => setActiveTab('notes')} label="Notes" />
             <TabButton active={activeTab === 'chats'} onClick={() => setActiveTab('chats')} label="Chats" count={0} />
             <TabButton active={activeTab === 'care-plan'} onClick={() => setActiveTab('care-plan')} label="Care Plan" />
             <TabButton active={activeTab === 'labs'} onClick={() => setActiveTab('labs')} label="Labs" />
@@ -861,7 +917,72 @@ export const PatientProfilePanel: React.FC<PatientProfilePanelProps> = ({
 
         {/* Content */}
         <div className="flex flex-1 flex-col overflow-hidden">
-          {renderTabContent()}
+          <div className={`flex-1 flex-col overflow-hidden ${activeTab === 'profile' ? 'flex' : 'hidden'}`}>
+            {renderProfileTab()}
+          </div>
+          <div className={`flex-1 flex-col overflow-hidden ${activeTab === 'notes' ? 'flex' : 'hidden'}`}>
+            {renderNotesTab()}
+          </div>
+          {activeTab === 'chats' && (
+            <PlaceholderTab
+              title="Chats"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.938L3 20l1.352-3.157A7.829 7.829 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+              }
+            />
+          )}
+          {activeTab === 'care-plan' && (
+            <PlaceholderTab
+              title="Care Plan"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              }
+            />
+          )}
+          {activeTab === 'labs' && (
+            <PlaceholderTab
+              title="Labs"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"
+                  />
+                </svg>
+              }
+            />
+          )}
+          {activeTab === 'files' && (
+            <PlaceholderTab
+              title="Files"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4h7l3 3h6v11a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2z"
+                  />
+                </svg>
+              }
+            />
+          )}
         </div>
       </div>
 
