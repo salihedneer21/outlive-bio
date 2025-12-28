@@ -10,6 +10,8 @@ import { patientInsightsRouter } from '@modules/patient-insights/patientInsights
 import { logsRouter } from '@modules/logs/logs.routes';
 import { dashboardRouter } from '@modules/dashboard/dashboard.routes';
 import { adminUsersRouter } from '@modules/admin-users/adminUsers.routes';
+import { chatRouter } from '@modules/chat/chat.routes';
+import { notificationsRouter } from '@modules/notifications/notifications.routes';
 
 const router = Router();
 
@@ -24,5 +26,7 @@ router.use('/', patientInsightsRouter);
 router.use('/', logsRouter);
 router.use('/', dashboardRouter);
 router.use('/', adminUsersRouter);
+router.use('/', chatRouter);
+router.use('/', notificationsRouter);
 
 export const apiRouter = router;

@@ -10,8 +10,17 @@ import { AdminsPage } from '@/pages/admins';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { PreferencesProvider, usePreferences } from './preferences/PreferencesContext';
 import { ToastProvider } from './components/Toaster';
+import { ChatNotificationsBell } from './components/ChatNotificationsBell';
+import { ChatNotificationsPage } from './pages/ChatNotificationsPage';
 
-type AdminRoute = 'dashboard' | 'patients' | 'categories' | 'products' | 'logs' | 'admins';
+type AdminRoute =
+  | 'dashboard'
+  | 'patients'
+  | 'categories'
+  | 'products'
+  | 'logs'
+  | 'admins'
+  | 'chat-notifications';
 
 const AdminNavbar: React.FC<{
   activeRoute: AdminRoute;
@@ -305,16 +314,16 @@ const AdminNavbar: React.FC<{
           {/* Logo - centered on mobile, left on desktop */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white dark:bg-white">
-              <img src="/favicon.png" alt="Outlive" className="h-6 w-6" />
-            </div>
-            <div className="hidden sm:block">
-              <div className="text-sm font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">
-                Outlive Admin
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white dark:bg-white">
+                <img src="/favicon.png" alt="Outlive" className="h-6 w-6" />
               </div>
-              <div className="text-xs text-neutral-500 dark:text-neutral-400">Clinic console</div>
+              <div className="hidden sm:block">
+                <div className="text-sm font-semibold tracking-tight text-neutral-900 dark:text-neutral-50">
+                  Outlive Admin
+                </div>
+                <div className="text-xs text-neutral-500 dark:text-neutral-400">Clinic console</div>
+              </div>
             </div>
-          </div>
 
           {/* Desktop Navigation Pills */}
           <div className="hidden items-center gap-1 rounded-full bg-neutral-100 p-1 text-xs font-medium sm:flex dark:bg-neutral-800">
@@ -393,10 +402,15 @@ const AdminNavbar: React.FC<{
           </div>
         </div>
 
-        {/* Right Side: Profile (desktop only) + placeholder for mobile balance */}
-        <div className="flex items-center">
+        {/* Right Side: Chat notifications + Profile (desktop only) */}
+        <div className="flex items-center gap-2">
           {/* Mobile: empty space for visual balance */}
           <div className="w-9 sm:hidden" />
+
+          {/* Chat notifications bell (desktop only) */}
+          <div className="hidden sm:block">
+            <ChatNotificationsBell onViewAll={() => onRouteChange('chat-notifications')} />
+          </div>
 
           {/* Desktop Profile Dropdown */}
           {user && (
@@ -518,6 +532,7 @@ const AppInner: React.FC = () => {
         {route === 'products' && <ProductsPage />}
         {route === 'logs' && <LogsPage />}
         {route === 'admins' && <AdminsPage />}
+        {route === 'chat-notifications' && <ChatNotificationsPage />}
       </main>
     </div>
   );

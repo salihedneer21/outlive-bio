@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.48.0",
     "remark-breaks": "^3.0.3",
     "@outlive/shared": "workspace:*",
     "@uiw/react-markdown-preview": "^5.1.5",

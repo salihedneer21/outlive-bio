@@ -7,7 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
-      '@outlive/shared': fileURLToPath(new URL('../shared/src', import.meta.url))
+      '@outlive/shared': fileURLToPath(new URL('../shared/src', import.meta.url)),
+      '@supabase/supabase-js': fileURLToPath(
+        new URL('../backend/node_modules/@supabase/supabase-js', import.meta.url)
+      )
     }
   },
   server: {

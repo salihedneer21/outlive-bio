@@ -4,6 +4,7 @@ import type { AdminPatient, AdminComprehensiveIntake, AdminPatientProfile } from
 import { getPatientComprehensiveIntake, getPatientProfile } from '@/api/patients';
 import { PatientNotesPanel } from './PatientNotesPanel';
 import { PatientInsightsPanel } from './PatientInsightsPanel';
+import { PatientChatPanel } from './PatientChatPanel';
 
 type PanelTab = 'profile' | 'notes' | 'insights' | 'chats' | 'care-plan' | 'labs' | 'files';
 
@@ -891,21 +892,7 @@ export const PatientProfilePanel: React.FC<PatientProfilePanelProps> = ({
           <div className={`flex-1 flex-col overflow-hidden ${activeTab === 'insights' ? 'flex' : 'hidden'}`}>
             {patient && <PatientInsightsPanel patient={patient} />}
           </div>
-          {activeTab === 'chats' && (
-            <PlaceholderTab
-              title="Chats"
-              icon={
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.938L3 20l1.352-3.157A7.829 7.829 0 013 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                  />
-                </svg>
-              }
-            />
-          )}
+          {activeTab === 'chats' && <PatientChatPanel patient={patient} />}
           {activeTab === 'care-plan' && (
             <PlaceholderTab
               title="Care Plan"

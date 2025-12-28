@@ -16,7 +16,8 @@
     "paths": {
       "@outlive/shared": ["../shared/src/index"],
       "@outlive/shared/*": ["../shared/src/*"],
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@supabase/supabase-js": ["../backend/node_modules/@supabase/supabase-js"]
     }
   },
   "include": ["src", "../shared/src"],
