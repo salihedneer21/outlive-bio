@@ -59,6 +59,8 @@ export const getAdminPatientNotifications = async ({
   pageSize
 }: {
   patientId: string;
+  page?: number;
+  pageSize?: number;
 }): Promise<AdminNotification[]> => {
   const supabase = getSupabaseServiceClient();
 
