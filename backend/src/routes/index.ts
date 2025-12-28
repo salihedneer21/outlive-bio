@@ -9,6 +9,7 @@ import { patientNotesRouter } from '@modules/patient-notes/patientNotes.routes';
 import { patientInsightsRouter } from '@modules/patient-insights/patientInsights.routes';
 import { logsRouter } from '@modules/logs/logs.routes';
 import { dashboardRouter } from '@modules/dashboard/dashboard.routes';
+import { adminUsersRouter } from '@modules/admin-users/adminUsers.routes';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/', patientNotesRouter);
 router.use('/', patientInsightsRouter);
 router.use('/', logsRouter);
 router.use('/', dashboardRouter);
+router.use('/', adminUsersRouter);
 
 export const apiRouter = router;

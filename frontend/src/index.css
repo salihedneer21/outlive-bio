@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Disable overscroll/pull-to-refresh behavior */
+html, body {
+  overscroll-behavior: none;
+}
+
 /* Light mode base */
 body {
   @apply bg-neutral-50 text-neutral-900 antialiased;

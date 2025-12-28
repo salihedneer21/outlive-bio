@@ -5,3 +5,4 @@ export * from './notes';
 export * from './insights';
 export * from './logs';
 export * from './dashboard';
+export * from './admins';

@@ -6,11 +6,12 @@ import { DashboardPage } from '@/pages/DashboardPage';
 import { CategoriesPage } from '@/pages/categories';
 import { ProductsPage } from '@/pages/products';
 import { LogsPage } from '@/pages/logs';
+import { AdminsPage } from '@/pages/admins';
 import { ThemeProvider, useTheme } from './theme/ThemeContext';
 import { PreferencesProvider, usePreferences } from './preferences/PreferencesContext';
 import { ToastProvider } from './components/Toaster';
 
-type AdminRoute = 'dashboard' | 'patients' | 'categories' | 'products' | 'logs';
+type AdminRoute = 'dashboard' | 'patients' | 'categories' | 'products' | 'logs' | 'admins';
 
 const AdminNavbar: React.FC<{
   activeRoute: AdminRoute;
@@ -193,6 +194,27 @@ const AdminNavbar: React.FC<{
                   </span>
                   <span className="font-medium">Logs</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => handleRouteChange('admins')}
+                  className={`mt-2 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
+                    activeRoute === 'admins'
+                      ? 'bg-neutral-100 text-neutral-900 dark:bg-neutral-800 dark:text-neutral-50'
+                      : 'text-neutral-600 hover:bg-neutral-50 dark:text-neutral-300 dark:hover:bg-neutral-800'
+                  }`}
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                    <svg className="h-4 w-4 text-purple-600 dark:text-purple-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M12 4a4 4 0 110 8 4 4 0 010-8z"
+                      />
+                    </svg>
+                  </span>
+                  <span className="font-medium">Admins</span>
+                </button>
               </nav>
 
               {/* Settings */}
@@ -356,6 +378,18 @@ const AdminNavbar: React.FC<{
               <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
               Logs
             </button>
+            <button
+              type="button"
+              onClick={() => onRouteChange('admins')}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition-all ${
+                activeRoute === 'admins'
+                  ? 'bg-white text-neutral-900 shadow-sm dark:bg-neutral-900 dark:text-neutral-50'
+                  : 'text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-50'
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-purple-500" />
+              Admins
+            </button>
           </div>
         </div>
 
@@ -483,6 +517,7 @@ const AppInner: React.FC = () => {
         {route === 'categories' && <CategoriesPage />}
         {route === 'products' && <ProductsPage />}
         {route === 'logs' && <LogsPage />}
+        {route === 'admins' && <AdminsPage />}
       </main>
     </div>
   );
