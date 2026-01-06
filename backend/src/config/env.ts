@@ -12,7 +12,8 @@ const envSchema = z.object({
   PATIENT_PORTAL_BASE_URL: z.string().url().optional(),
   TELEGRA_EMAIL: z.string().optional(),
   TELEGRA_PASSWORD: z.string().optional(),
-  TELEGRA_BASE_URL: z.string().url().optional()
+  TELEGRA_BASE_URL: z.string().url().optional(),
+  KLAVIYO_API_KEY: z.string().optional()
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

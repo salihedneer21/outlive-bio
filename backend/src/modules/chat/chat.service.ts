@@ -1,4 +1,5 @@
 import { getSupabaseServiceClient } from '@lib/supabase';
+import { KlaviyoCrmService } from '@modules/klaviyo/klaviyo.crm.service';
 
 export interface AdminChatThread {
   id: string;
@@ -248,6 +249,30 @@ export const sendAdminChatMessage = async ({
     });
   } catch {
     // Do not fail chat if notification creation fails
+  }
+
+  // Trigger Klaviyo "Message Received" event for admin -> patient messages
+  try {
+    const { data: patientRows, error: patientError } = await supabase
+      .from('patients')
+      .select('email')
+      .eq('user_id', patientId)
+      .limit(1);
+
+    const patientEmail =
+      !patientError && patientRows && patientRows[0] && typeof patientRows[0].email === 'string'
+        ? (patientRows[0].email as string)
+        : undefined;
+
+    if (patientEmail) {
+      await KlaviyoCrmService.sendMessageReceived({
+        patientId,
+        email: patientEmail,
+        channel: 'admin'
+      });
+    }
+  } catch {
+    // Klaviyo failures must not impact chat delivery
   }
 
   return { thread, message };
