@@ -52,8 +52,6 @@ export const getAdminDashboardStats = async (params?: {
       ? logsCountResult.count
       : logsCountResult.data?.length ?? 0;
 
-  const weeklyRegistrations = patientsStats.dailyRegistrations.slice(-7);
-
   const result: AdminDashboardStatsDto = {
     totals: {
       patients: patientsStats.totalPatients,
@@ -61,7 +59,7 @@ export const getAdminDashboardStats = async (params?: {
       categories: totalCategories,
       logs: totalLogs
     },
-    weeklyRegistrations
+    registrations: patientsStats.dailyRegistrations
   };
 
   return result;

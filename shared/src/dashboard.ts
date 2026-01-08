@@ -5,13 +5,14 @@ export interface AdminDashboardTotals {
   logs: number;
 }
 
-export interface AdminDashboardWeeklyPoint {
+export interface AdminDashboardRegistrationPoint {
   date: string;
   count: number;
 }
 
 export interface AdminDashboardStats {
   totals: AdminDashboardTotals;
-  weeklyRegistrations: AdminDashboardWeeklyPoint[];
+  /** Daily registrations for the last 30 days */
+  registrations: AdminDashboardRegistrationPoint[];
 }
 

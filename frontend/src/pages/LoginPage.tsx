@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { loginRequest } from '@/api/auth';
 import { useAuth } from '@/auth/AuthContext';
 
-interface LoginPageProps {
-  onLoginSuccess: () => void;
-}
-
-export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
+export const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,15 +25,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         return;
       }
 
-      login(
-        {
-          id: response.data.user.id,
-          email: response.data.user.email,
-          role: response.data.role
-        }
-      );
+      login({
+        id: response.data.user.id,
+        email: response.data.user.email,
+        role: response.data.role
+      });
 
-      onLoginSuccess();
+      navigate('/dashboard');
     } catch (err) {
       const message =
         typeof err === 'object' && err && 'message' in err

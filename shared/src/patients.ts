@@ -29,6 +29,7 @@ export interface AdminPatient {
   registrationDate: string | null;
   intake: AdminPatientIntake;
   sexAtBirth: string | null;
+  subscriptionTier: string | null;
 }
 
 export interface AdminPatientsQuery {

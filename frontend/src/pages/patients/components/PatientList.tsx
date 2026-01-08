@@ -84,8 +84,23 @@ const PatientCard: React.FC<{
     <div className="rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:border-neutral-300 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <div className="truncate font-medium text-neutral-900 dark:text-neutral-50">
+          <div className="flex items-center gap-1.5 truncate font-medium text-neutral-900 dark:text-neutral-50">
             {fullName}
+            {patient.subscriptionTier && (
+              <span
+                className="inline-flex flex-shrink-0 items-center gap-1 rounded-full border border-amber-400 bg-amber-50 px-1.5 py-0.5 dark:border-amber-500 dark:bg-amber-950"
+                title={patient.subscriptionTier}
+              >
+                <img
+                  src="/assets/gem.png"
+                  alt=""
+                  className="h-3 w-3"
+                />
+                <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                  Premium
+                </span>
+              </span>
+            )}
           </div>
           <div className="truncate text-xs text-neutral-500 dark:text-neutral-400">
             {email}
@@ -117,21 +132,15 @@ const PatientCard: React.FC<{
         <button
           type="button"
           onClick={() => onViewPortal(patient)}
-          className="inline-flex h-8 items-center justify-center rounded-lg border border-neutral-300 bg-white px-2 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
-          title="View patient portal"
+          className="inline-flex h-8 items-center justify-center rounded-[36px] border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-600 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+          title="Open patient portal"
         >
-          <svg className="mr-1 h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="mr-1.5 h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
             />
           </svg>
           Portal
@@ -139,23 +148,9 @@ const PatientCard: React.FC<{
         <button
           type="button"
           onClick={() => onViewDetails(patient)}
-          className="inline-flex h-8 items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+          className="inline-flex h-8 items-center justify-center rounded-[36px] border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
         >
-          <svg className="mr-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-          View
+          Details
         </button>
       </div>
     </div>
@@ -507,7 +502,24 @@ export const PatientList: React.FC = () => {
                     <tr key={patient.id} className="transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-800/50">
                       <td className="px-3 py-3 sm:px-4">
                         <div className="flex flex-col">
-                          <span className="font-medium text-neutral-900 dark:text-neutral-50">{fullName}</span>
+                          <span className="flex items-center gap-1.5 font-medium text-neutral-900 dark:text-neutral-50">
+                            {fullName}
+                            {patient.subscriptionTier && (
+                              <span
+                                className="inline-flex flex-shrink-0 items-center gap-1 rounded-full border border-amber-400 bg-amber-50 px-1.5 py-0.5 dark:border-amber-500 dark:bg-amber-950"
+                                title={patient.subscriptionTier}
+                              >
+                                <img
+                                  src="/assets/gem.png"
+                                  alt=""
+                                  className="h-3 w-3"
+                                />
+                                <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                                  Premium
+                                </span>
+                              </span>
+                            )}
+                          </span>
                           <span className="text-xs text-neutral-500 dark:text-neutral-400">{email}</span>
                         </div>
                       </td>
@@ -533,28 +545,22 @@ export const PatientList: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleViewDetails(patient)}
-                            className="inline-flex h-8 items-center justify-center rounded-lg border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                            className="inline-flex h-8 items-center justify-center rounded-[36px] border border-neutral-300 bg-white px-3 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
                           >
                             Details
                           </button>
                           <button
                             type="button"
                             onClick={() => handleViewPortal(patient)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-50"
-                            title="View patient portal"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-[36px] border border-neutral-300 bg-white text-neutral-600 transition-colors hover:bg-neutral-50 hover:text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700 dark:hover:text-neutral-50"
+                            title="Open patient portal"
                           >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 strokeWidth={2}
-                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                               />
                             </svg>
                           </button>

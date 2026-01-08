@@ -30,7 +30,7 @@ const getRefreshTokenFromRequest = (req: Request): string | null => {
 const getRefreshCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'none' as const,
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
   path: '/api/auth/refresh',
   maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
 });
@@ -38,7 +38,7 @@ const getRefreshCookieOptions = () => ({
 const getAccessCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
-  sameSite: 'none' as const,
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
   path: '/api',
   // Persist login similarly to refresh cookie; actual JWT expiry is still enforced by Supabase.
   maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days

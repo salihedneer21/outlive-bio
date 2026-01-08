@@ -30,6 +30,7 @@ interface ProfileRow {
   intake_step: string | null;
   intake_completed_at: string | null;
   created_at: string | null;
+  subscription_tier: string | null;
 }
 
 interface FullProfileRow extends ProfileRow {
@@ -359,7 +360,8 @@ export const getAdminPatients = async (query: AdminPatientsQuery): Promise<Admin
           'sex_at_birth',
           'intake_step',
           'intake_completed_at',
-          'created_at'
+          'created_at',
+          'subscription_tier'
         ].join(', ')
       )
       .in('user_id', userIds);
@@ -404,7 +406,8 @@ export const getAdminPatients = async (query: AdminPatientsQuery): Promise<Admin
         status: intakeStatus,
         completedAt: profile?.intake_completed_at ?? null
       },
-      sexAtBirth: profile?.sex_at_birth ?? null
+      sexAtBirth: profile?.sex_at_birth ?? null,
+      subscriptionTier: profile?.subscription_tier ?? null
     };
   });
 
@@ -618,7 +621,8 @@ export const getAdminPatientProfile = async (
       status: intakeStatus,
       completedAt: intakeCompletedAt
     },
-    sexAtBirth
+    sexAtBirth,
+    subscriptionTier: profile?.lab.subscriptionTier ?? null
   };
 
   return {
@@ -653,6 +657,7 @@ export const getAdminPatientComprehensiveIntake = async (
   let sexAtBirth: string | null = null;
   let intakeStep: IntakeStep = null;
   let intakeCompletedAt: string | null = null;
+  let subscriptionTier: string | null = null;
 
   if (patientRow.user_id) {
     const { data: profileData, error: profileError } = await supabase
@@ -666,7 +671,8 @@ export const getAdminPatientComprehensiveIntake = async (
           'date_of_birth',
           'sex_at_birth',
           'intake_step',
-          'intake_completed_at'
+          'intake_completed_at',
+          'subscription_tier'
         ].join(', ')
       )
       .eq('user_id', patientRow.user_id)
@@ -685,6 +691,7 @@ export const getAdminPatientComprehensiveIntake = async (
       sexAtBirth = profile.sex_at_birth;
       intakeStep = (profile.intake_step ?? null) as IntakeStep;
       intakeCompletedAt = profile.intake_completed_at;
+      subscriptionTier = profile.subscription_tier;
     }
   }
 
@@ -730,7 +737,8 @@ export const getAdminPatientComprehensiveIntake = async (
       status: intakeStatus,
       completedAt: intakeCompletedAt
     },
-    sexAtBirth
+    sexAtBirth,
+    subscriptionTier
   };
 
   return {

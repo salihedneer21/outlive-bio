@@ -1,10 +1,83 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PatientList, PatientStats } from './components';
+import { getPatientStats } from '@/api/patients';
+import type { AdminPatientsStats } from '@outlive/shared';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  UserMultipleIcon,
+  CheckmarkCircle01Icon,
+  Clock01Icon,
+  MoreHorizontalCircle01Icon
+} from '@hugeicons/core-free-icons';
 
 type Tab = 'list' | 'stats';
 
+const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div className={`animate-pulse rounded bg-neutral-200 dark:bg-neutral-800 ${className}`} />
+);
+
+interface StatItemProps {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  subtitle?: string;
+}
+
+const StatItem: React.FC<StatItemProps> = ({ icon, label, value, subtitle }) => (
+  <div className="flex flex-1 items-center gap-4 p-5">
+    <div className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800">
+      {icon}
+    </div>
+    <div>
+      <div className="text-sm text-neutral-500 dark:text-neutral-400">{label}</div>
+      <div className="flex items-center gap-2">
+        <span className="text-xl font-semibold tabular-nums text-neutral-900 dark:text-white">
+          {value.toLocaleString()}
+        </span>
+        {subtitle && (
+          <span className="text-xs text-neutral-400 dark:text-neutral-500">{subtitle}</span>
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const StatCardsSkeleton: React.FC = () => (
+  <div className="flex items-center divide-x divide-neutral-200 rounded-2xl border border-neutral-200 bg-white dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900">
+    {[1, 2, 3, 4].map((i) => (
+      <div key={i} className="flex flex-1 items-center gap-4 p-5">
+        <Skeleton className="h-11 w-11 rounded-full" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-6 w-12" />
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
 export const PatientsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('list');
+  const [stats, setStats] = useState<AdminPatientsStats | null>(null);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
+
+  // Load stats once on mount
+  useEffect(() => {
+    let cancelled = false;
+    const loadStats = async () => {
+      try {
+        setIsStatsLoading(true);
+        const response = await getPatientStats();
+        if (!cancelled) setStats(response.data);
+      } catch {
+        // Silent failure - stats are supplementary
+      } finally {
+        if (!cancelled) setIsStatsLoading(false);
+      }
+    };
+    void loadStats();
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -51,6 +124,39 @@ export const PatientsPage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Stat Cards - Only show on Statistics tab */}
+      {activeTab === 'stats' && (
+        isStatsLoading ? (
+          <StatCardsSkeleton />
+        ) : stats ? (
+          <section className="flex flex-col divide-y divide-neutral-200 rounded-2xl border border-neutral-200 bg-white dark:divide-neutral-800 dark:border-neutral-800 dark:bg-neutral-900 lg:flex-row lg:divide-x lg:divide-y-0">
+            <StatItem
+              icon={<HugeiconsIcon icon={UserMultipleIcon} size={22} className="text-neutral-600 dark:text-neutral-400" />}
+              label="Total Patients"
+              value={stats.totalPatients}
+            />
+            <StatItem
+              icon={<HugeiconsIcon icon={CheckmarkCircle01Icon} size={22} className="text-emerald-600 dark:text-emerald-400" />}
+              label="Completed Intake"
+              value={stats.intakeStatusCounts.completed}
+              subtitle={stats.totalPatients > 0 ? `${Math.round((stats.intakeStatusCounts.completed / stats.totalPatients) * 100)}%` : undefined}
+            />
+            <StatItem
+              icon={<HugeiconsIcon icon={Clock01Icon} size={22} className="text-amber-600 dark:text-amber-400" />}
+              label="In Progress"
+              value={stats.intakeStatusCounts.in_progress}
+              subtitle={stats.totalPatients > 0 ? `${Math.round((stats.intakeStatusCounts.in_progress / stats.totalPatients) * 100)}%` : undefined}
+            />
+            <StatItem
+              icon={<HugeiconsIcon icon={MoreHorizontalCircle01Icon} size={22} className="text-neutral-500 dark:text-neutral-400" />}
+              label="Not Started"
+              value={stats.intakeStatusCounts.not_started}
+              subtitle={stats.totalPatients > 0 ? `${Math.round((stats.intakeStatusCounts.not_started / stats.totalPatients) * 100)}%` : undefined}
+            />
+          </section>
+        ) : null
+      )}
 
       {/* Content - both tabs stay mounted to preserve state */}
       <div className={activeTab === 'list' ? 'block' : 'hidden'}>

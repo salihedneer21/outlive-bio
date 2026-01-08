@@ -18,42 +18,6 @@ const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
   <div className={`animate-pulse rounded bg-neutral-200 dark:bg-neutral-800 ${className}`} />
 );
 
-const StatCard: React.FC<{
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ReactNode;
-  color: string;
-}> = ({ title, value, subtitle, icon, color }) => (
-  <div className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="text-xs font-medium text-neutral-500 dark:text-neutral-400">{title}</p>
-        <p className="mt-1 text-2xl font-semibold text-neutral-900 dark:text-neutral-50">{value}</p>
-        {subtitle && (
-          <p className="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">{subtitle}</p>
-        )}
-      </div>
-      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${color}`}>
-        {icon}
-      </div>
-    </div>
-  </div>
-);
-
-const StatCardSkeleton: React.FC = () => (
-  <div className="rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
-    <div className="flex items-start justify-between">
-      <div className="space-y-2">
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-7 w-16" />
-        <Skeleton className="h-3 w-24" />
-      </div>
-      <Skeleton className="h-10 w-10 rounded-lg" />
-    </div>
-  </div>
-);
-
 const INTAKE_COLORS = {
   completed: '#10b981',
   in_progress: '#f59e0b',
@@ -123,65 +87,6 @@ export const PatientStats: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {isLoading ? (
-          <>
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-            <StatCardSkeleton />
-          </>
-        ) : stats ? (
-          <>
-            <StatCard
-              title="Total Patients"
-              value={stats.totalPatients.toLocaleString()}
-              subtitle="All registered patients"
-              icon={
-                <svg className="h-5 w-5 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              }
-              color="bg-cyan-100 dark:bg-cyan-900/30"
-            />
-            <StatCard
-              title="Completed Intake"
-              value={stats.intakeStatusCounts.completed.toLocaleString()}
-              subtitle={`${stats.totalPatients > 0 ? Math.round((stats.intakeStatusCounts.completed / stats.totalPatients) * 100) : 0}% of total`}
-              icon={
-                <svg className="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-              color="bg-emerald-100 dark:bg-emerald-900/30"
-            />
-            <StatCard
-              title="In Progress"
-              value={stats.intakeStatusCounts.in_progress.toLocaleString()}
-              subtitle={`${stats.totalPatients > 0 ? Math.round((stats.intakeStatusCounts.in_progress / stats.totalPatients) * 100) : 0}% of total`}
-              icon={
-                <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-              color="bg-amber-100 dark:bg-amber-900/30"
-            />
-            <StatCard
-              title="Not Started"
-              value={stats.intakeStatusCounts.not_started.toLocaleString()}
-              subtitle={`${stats.totalPatients > 0 ? Math.round((stats.intakeStatusCounts.not_started / stats.totalPatients) * 100) : 0}% of total`}
-              icon={
-                <svg className="h-5 w-5 text-neutral-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-              color="bg-neutral-100 dark:bg-neutral-800"
-            />
-          </>
-        ) : null}
-      </div>
-
       {/* Charts Row */}
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Registrations Chart */}
@@ -197,8 +102,8 @@ export const PatientStats: React.FC = () => {
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
+                      <stop offset="0%" stopColor="#37a4ff" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#4ac0ff" stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-neutral-800" />
@@ -229,7 +134,7 @@ export const PatientStats: React.FC = () => {
                   <Area
                     type="monotone"
                     dataKey="count"
-                    stroke="#3b82f6"
+                    stroke="#37a4ff"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#colorCount)"
