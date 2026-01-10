@@ -13,8 +13,6 @@ import {
   Logout01Icon,
   Moon01Icon,
   Sun03Icon,
-  SidebarLeftIcon,
-  SidebarRightIcon,
   Message01Icon,
   Menu01Icon,
   Cancel01Icon,
@@ -42,7 +40,6 @@ export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const handleLogout = () => {
@@ -60,29 +57,15 @@ export const Sidebar: React.FC = () => {
   // Sidebar content (shared between desktop and mobile)
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex h-full flex-col">
-      {/* Logo & Collapse Toggle */}
+      {/* Logo */}
       <div className="flex items-center justify-between px-4 py-5">
-        <div className={`flex items-center ${isCollapsed && !isMobile ? 'justify-center w-full' : ''}`}>
-          {(!isCollapsed || isMobile) ? (
-            <img
-              src="/logo.svg"
-              alt="Outlive"
-              className="h-6 dark:invert"
-            />
-          ) : (
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#fdb482] to-[#ff7c66]">
-              <span className="text-xs font-bold text-white">OL</span>
-            </div>
-          )}
+        <div className="flex items-center">
+          <img
+            src="/logo.svg"
+            alt="Outlive"
+            className="h-6 dark:invert"
+          />
         </div>
-        {(!isCollapsed && !isMobile) && (
-          <button
-            onClick={() => setIsCollapsed(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 dark:hover:bg-neutral-800 dark:hover:text-neutral-300 transition-colors"
-          >
-            <HugeiconsIcon icon={SidebarLeftIcon} size={18} />
-          </button>
-        )}
         {isMobile && (
           <button
             onClick={() => setIsMobileOpen(false)}
@@ -95,7 +78,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        <div className={`space-y-2 ${isCollapsed && !isMobile ? 'px-0' : ''}`}>
+        <div className="space-y-2">
           {navItems.map((item) => (
             <button
               key={item.path}
@@ -103,22 +86,18 @@ export const Sidebar: React.FC = () => {
               className={`
                 flex items-center gap-3 w-full rounded-xl px-3 py-2.5
                 transition-all duration-200
-                ${isCollapsed && !isMobile ? 'justify-center' : ''}
                 ${isActive(item.path)
                   ? 'bg-gradient-to-r from-[#fdb482] to-[#ff7c66] text-white'
                   : 'text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800'
                 }
               `}
-              title={isCollapsed && !isMobile ? item.label : undefined}
             >
               <HugeiconsIcon
                 icon={item.icon}
                 size={20}
                 color={isActive(item.path) ? 'white' : 'currentColor'}
               />
-              {(!isCollapsed || isMobile) && (
-                <span className="text-sm font-medium">{item.label}</span>
-              )}
+              <span className="text-sm font-medium">{item.label}</span>
             </button>
           ))}
         </div>
@@ -127,7 +106,7 @@ export const Sidebar: React.FC = () => {
       {/* Bottom Section */}
       <div className="px-3 py-4 border-t border-neutral-100 dark:border-neutral-800">
         {/* User Info */}
-        {user && (!isCollapsed || isMobile) && (
+        {user && (
           <div className="mb-3 px-3 py-3 rounded-xl bg-gradient-to-r from-[#fdb482]/10 to-[#ff7c66]/10 border border-[#fdb482]/20">
             <div className="flex items-center gap-2 mb-1">
               <HugeiconsIcon icon={ShieldUserIcon} size={14} className="text-[#ff7c66]" />
@@ -142,51 +121,25 @@ export const Sidebar: React.FC = () => {
         )}
 
         {/* Actions */}
-        <div className={`space-y-2 ${isCollapsed && !isMobile ? 'px-0' : ''}`}>
+        <div className="space-y-2">
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className={`
-              flex items-center gap-3 w-full rounded-xl px-3 py-2.5
-              text-neutral-600 hover:bg-neutral-100
-              dark:text-neutral-400 dark:hover:bg-neutral-800
-              transition-colors
-              ${isCollapsed && !isMobile ? 'justify-center' : ''}
-            `}
-            title={isCollapsed && !isMobile ? (theme === 'dark' ? 'Light mode' : 'Dark mode') : undefined}
+            className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
           >
             <HugeiconsIcon icon={theme === 'dark' ? Sun03Icon : Moon01Icon} size={20} />
-            {(!isCollapsed || isMobile) && (
-              <span className="text-sm font-medium">
-                {theme === 'dark' ? 'Light mode' : 'Dark mode'}
-              </span>
-            )}
+            <span className="text-sm font-medium">
+              {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+            </span>
           </button>
-
-          {/* Expand Sidebar (when collapsed, desktop only) */}
-          {isCollapsed && !isMobile && (
-            <button
-              onClick={() => setIsCollapsed(false)}
-              className="flex items-center justify-center w-full rounded-xl px-3 py-2.5 text-neutral-600 hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800 transition-colors"
-              title="Expand sidebar"
-            >
-              <HugeiconsIcon icon={SidebarRightIcon} size={20} />
-            </button>
-          )}
 
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className={`
-              flex items-center gap-3 w-full rounded-xl px-3 py-2.5
-              text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30
-              transition-colors
-              ${isCollapsed && !isMobile ? 'justify-center' : ''}
-            `}
-            title={isCollapsed && !isMobile ? 'Logout' : undefined}
+            className="flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
           >
             <HugeiconsIcon icon={Logout01Icon} size={20} />
-            {(!isCollapsed || isMobile) && <span className="text-sm font-medium">Logout</span>}
+            <span className="text-sm font-medium">Logout</span>
           </button>
         </div>
       </div>
@@ -234,13 +187,7 @@ export const Sidebar: React.FC = () => {
 
       {/* Desktop Sidebar */}
       <aside
-        className={`
-          fixed left-0 top-0 z-40 h-[calc(100vh-20px)] m-2.5
-          ${isCollapsed ? 'w-[72px]' : 'w-[240px]'}
-          rounded-[22px] bg-white dark:bg-neutral-900
-          transition-all duration-300 ease-in-out
-          hidden lg:flex flex-col
-        `}
+        className="fixed left-0 top-0 z-40 h-[calc(100vh-20px)] m-2.5 w-[240px] rounded-[22px] bg-white dark:bg-neutral-900 hidden lg:flex flex-col"
       >
         <SidebarContent />
       </aside>
