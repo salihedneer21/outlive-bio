@@ -4,6 +4,8 @@
  * Provides a decoupled way for the API client to communicate auth state changes
  * to the AuthContext without creating circular dependencies.
  *
+ * Also stores the current access token for API client to use in Authorization header.
+ *
  * Industry standard pattern: Event-driven architecture for cross-cutting concerns.
  */
 
@@ -13,6 +15,7 @@ type AuthEventListener = (event: AuthEventType) => void;
 
 class AuthEventEmitter {
   private listeners: Set<AuthEventListener> = new Set();
+  private _accessToken: string | null = null;
 
   subscribe(listener: AuthEventListener): () => void {
     this.listeners.add(listener);
@@ -29,6 +32,15 @@ class AuthEventEmitter {
         console.error('Auth event listener error:', error);
       }
     });
+  }
+
+  // Token storage for API client to use
+  setAccessToken(token: string | null): void {
+    this._accessToken = token;
+  }
+
+  getAccessToken(): string | null {
+    return this._accessToken;
   }
 }
 

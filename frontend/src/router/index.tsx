@@ -8,7 +8,7 @@ import { CategoriesPage } from '@/pages/categories';
 import { ProductsPage } from '@/pages/products';
 import { LogsPage } from '@/pages/logs';
 import { AdminsPage } from '@/pages/admins';
-import { ChatNotificationsPage } from '@/pages/ChatNotificationsPage';
+import { ChatPage } from '@/pages/ChatPage';
 
 export const router = createBrowserRouter([
   {
@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
       },
       {
         path: 'chat-notifications',
-        element: <ChatNotificationsPage />
+        element: <ChatPage />
       }
     ]
   },

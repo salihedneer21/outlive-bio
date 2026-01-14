@@ -14,6 +14,19 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173
+    port: 5173,
+    proxy: {
+      // Proxy API requests to backend
+      '/api': {
+        target: 'http://localhost:4000',
+        changeOrigin: true
+      },
+      // Proxy socket.io requests to backend
+      '/socket.io': {
+        target: 'http://localhost:4000',
+        changeOrigin: true,
+        ws: true
+      }
+    }
   }
 });

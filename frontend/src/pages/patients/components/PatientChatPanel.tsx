@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { AdminPatient } from '@outlive/shared';
-import type { RealtimeChannel } from '@supabase/supabase-js';
-import { getSupabaseClient } from '@/api/supabaseClient';
 import {
   fetchChatMessages,
   fetchChatThreads,
-  sendAdminChatMessageApi,
-  type AdminChatMessage
+  type ChatMessage
 } from '@/api/chat';
+import {
+  useAdminSocket,
+  useSocketEvent,
+  type NewMessageEvent
+} from '@/socket/AdminSocketContext';
 
 interface PatientChatPanelProps {
   patient: AdminPatient | null;
@@ -57,7 +59,7 @@ const LoadingSpinner: React.FC = () => (
 );
 
 export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) => {
-  const [messages, setMessages] = useState<AdminChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [threadId, setThreadId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
@@ -65,8 +67,21 @@ export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) =
   const [input, setInput] = useState('');
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const subscriptionRef = useRef<RealtimeChannel | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const prevThreadRef = useRef<string | null>(null);
+
+  const {
+    isConnected,
+    joinThread,
+    leaveThread,
+    sendMessage: sendSocketMessage
+  } = useAdminSocket();
+
+  // Keep ref for threadId to use in socket handler
+  const threadIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    threadIdRef.current = threadId;
+  }, [threadId]);
 
   const scrollToBottom = () => {
     if (bottomRef.current) {
@@ -81,7 +96,7 @@ export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) =
         setError(null);
 
         const res = await fetchChatMessages(existingThreadId, 200);
-        setMessages(res.data ?? []);
+        setMessages(res.data.messages ?? []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load chat');
       } finally {
@@ -107,8 +122,8 @@ export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) =
         setError(null);
 
         const res = await fetchChatThreads(1, 200);
-        const threads = res.data ?? [];
-        const existingThread = threads.find((t) => t.patient_id === patient.userId) ?? null;
+        const threads = res.data.threads ?? [];
+        const existingThread = threads.find((t) => t.user_id === patient.userId) ?? null;
 
         if (cancelled) return;
 
@@ -144,46 +159,40 @@ export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) =
     void loadMessages(threadId);
   }, [threadId, loadMessages]);
 
-  // Subscribe to Supabase realtime for this thread
+  // Join/leave thread rooms when thread changes
   useEffect(() => {
-    const supabase = getSupabaseClient();
-    if (!supabase || !threadId) return;
-
-    if (subscriptionRef.current) {
-      subscriptionRef.current.unsubscribe();
-      subscriptionRef.current = null;
+    if (prevThreadRef.current && prevThreadRef.current !== threadId) {
+      leaveThread(prevThreadRef.current);
     }
 
-    const channel = supabase
-      // Match patient app naming convention for easier debugging
-      .channel(`chat_messages:${threadId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `thread_id=eq.${threadId}`
-        },
-        (payload: any) => {
-          const newMsg = payload.new as AdminChatMessage;
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
+    if (threadId) {
+      joinThread(threadId);
+      prevThreadRef.current = threadId;
+    } else {
+      prevThreadRef.current = null;
+    }
+  }, [threadId, joinThread, leaveThread]);
+
+  // Subscribe to socket events for real-time updates
+  useSocketEvent<NewMessageEvent>('new_message', (event) => {
+    console.log('[AdminChat] Received new_message event:', event);
+    const newMsg = event.message;
+    const currentThreadId = threadIdRef.current;
+    console.log('[AdminChat] currentThreadId:', currentThreadId, 'message threadId:', newMsg?.thread_id);
+    if (currentThreadId && newMsg.thread_id === currentThreadId) {
+      console.log('[AdminChat] Adding message to chat');
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === newMsg.id)) {
+          console.log('[AdminChat] Message already exists');
+          return prev;
         }
-      )
-      .subscribe();
-
-    subscriptionRef.current = channel;
-
-    return () => {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
-        subscriptionRef.current = null;
-      }
-    };
-  }, [threadId]);
+        console.log('[AdminChat] New message added');
+        return [...prev, newMsg];
+      });
+    } else {
+      console.log('[AdminChat] Message not for current thread');
+    }
+  });
 
   useEffect(() => {
     scrollToBottom();
@@ -197,36 +206,25 @@ export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) =
     }
   }, [input]);
 
-  const handleSend = async () => {
-    if (!patient?.userId) {
-      setError('Patient user id is missing');
+  const handleSend = () => {
+    if (!threadId) {
+      setError('No chat thread available');
       return;
     }
     const text = input.trim();
     if (!text) return;
 
-    try {
-      setSending(true);
-      setError(null);
+    setSending(true);
+    setError(null);
 
-      const res = await sendAdminChatMessageApi({
-        patientId: patient.userId,
-        body: text
-      });
+    // Send via socket - the socket handler will add the message to state via onNewMessage
+    sendSocketMessage(threadId, text);
 
-      setThreadId(res.data.thread.id);
+    // Clear input immediately for better UX
+    setInput('');
 
-      setMessages((prev) => {
-        if (prev.some((m) => m.id === res.data.message.id)) return prev;
-        return [...prev, res.data.message];
-      });
-
-      setInput('');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send message');
-    } finally {
-      setSending(false);
-    }
+    // Reset sending state after a short delay
+    setTimeout(() => setSending(false), 500);
   };
 
   if (!patient) {
@@ -280,8 +278,10 @@ export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) =
           </p>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="text-xs text-neutral-500 dark:text-neutral-400">Live</span>
+          <span className={`h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+          <span className="text-xs text-neutral-500 dark:text-neutral-400">
+            {isConnected ? 'Live' : 'Connecting...'}
+          </span>
         </div>
       </div>
 
@@ -302,7 +302,7 @@ export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) =
         ) : (
           <div className="space-y-3 p-4">
             {messages.map((m) => {
-              const isAdmin = m.sender_role === 'admin';
+              const isAdmin = m.sender_type === 'admin';
               return (
                 <div
                   key={m.id}
@@ -324,7 +324,7 @@ export const PatientChatPanel: React.FC<PatientChatPanelProps> = ({ patient }) =
                           : 'rounded-bl-md border border-neutral-200 bg-white text-neutral-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100'
                       }`}
                     >
-                      <p className="text-[13px] leading-relaxed">{m.body}</p>
+                      <p className="text-[13px] leading-relaxed whitespace-pre-wrap">{m.content}</p>
                     </div>
                     <div className={`mt-1 px-1 ${isAdmin ? 'text-right' : 'text-left'}`}>
                       <span className="text-[10px] text-neutral-400 dark:text-neutral-500">

@@ -18,7 +18,8 @@
       "@middleware/*": ["middleware/*"],
       "@lib/*": ["lib/*"],
       "@types/*": ["types/*"],
-      "@utils/*": ["utils/*"]
+      "@utils/*": ["utils/*"],
+      "@socket/*": ["socket/*"]
     }
   },
   "include": ["src"]

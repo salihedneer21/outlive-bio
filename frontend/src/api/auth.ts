@@ -7,6 +7,7 @@ interface LoginResponse {
       email: string;
     };
     role: string | null;
+    accessToken: string;
   };
   message: string;
 }
@@ -18,6 +19,7 @@ interface RefreshResponse {
       email: string;
     };
     role: string | null;
+    accessToken: string;
   };
   message: string;
 }

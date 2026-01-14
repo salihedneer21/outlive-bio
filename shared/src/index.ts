@@ -6,3 +6,4 @@ export * from './insights';
 export * from './logs';
 export * from './dashboard';
 export * from './admins';
+export * from './chat';

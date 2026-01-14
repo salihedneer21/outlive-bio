@@ -1,6 +1,8 @@
 import { authEvents } from '@/auth/authEvents';
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api';
+// In development: use relative URL to go through Vite proxy (same-origin, cookies work)
+// In production: use full URL from env (cross-origin with sameSite=none + secure=true)
+export const API_BASE_URL = import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_URL ?? '/api');
 
 export interface ApiError {
   message: string;
@@ -39,6 +41,11 @@ async function attemptTokenRefresh(): Promise<boolean> {
       return false;
     }
 
+    // Store the new access token for subsequent requests
+    if (data.data.accessToken) {
+      authEvents.setAccessToken(data.data.accessToken);
+    }
+
     return true;
   } catch {
     return false;
@@ -69,13 +76,16 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const { accessToken, _isRetry, headers, ...rest } = options;
 
+  // Use provided token, or get from stored auth state
+  const token = accessToken ?? authEvents.getAccessToken();
+
   const result = await fetch(`${API_BASE_URL}${path}`, {
     ...rest,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...(headers || {}),
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {})
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
     }
   });
 

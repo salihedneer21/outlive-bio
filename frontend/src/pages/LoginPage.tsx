@@ -25,11 +25,14 @@ export const LoginPage: React.FC = () => {
         return;
       }
 
-      login({
-        id: response.data.user.id,
-        email: response.data.user.email,
-        role: response.data.role
-      });
+      login(
+        {
+          id: response.data.user.id,
+          email: response.data.user.email,
+          role: response.data.role
+        },
+        response.data.accessToken
+      );
 
       navigate('/dashboard');
     } catch (err) {

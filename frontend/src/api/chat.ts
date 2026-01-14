@@ -1,25 +1,12 @@
 import { apiFetch } from './client';
+import type {
+  ChatThread,
+  ChatMessage,
+  ChatThreadWithDetails
+} from '@outlive/shared';
 
-export interface AdminChatThread {
-  id: string;
-  patient_id: string;
-  created_at: string;
-  updated_at: string;
-  last_message_at: string | null;
-  last_message_preview: string | null;
-  patient_email: string | null;
-  patient_name: string | null;
-}
-
-export interface AdminChatMessage {
-  id: string;
-  thread_id: string;
-  sender_id: string;
-  sender_role: 'patient' | 'admin';
-  body: string;
-  metadata: Record<string, unknown> | null;
-  created_at: string;
-}
+// Re-export types for convenience
+export type { ChatThread, ChatMessage, ChatThreadWithDetails };
 
 export interface AdminNotification {
   id: string;
@@ -35,55 +22,77 @@ export interface AdminNotification {
   metadata: Record<string, unknown> | null;
 }
 
+/**
+ * Fetch all chat threads with user info and unread counts
+ */
 export async function fetchChatThreads(
-  page?: number,
-  pageSize?: number
-): Promise<{ data: AdminChatThread[] }> {
+  page = 1,
+  pageSize = 50
+): Promise<{ data: { threads: ChatThreadWithDetails[]; total: number } }> {
   const params = new URLSearchParams();
+  params.set('page', String(page));
+  params.set('pageSize', String(pageSize));
 
-  if (page && page > 0) {
-    params.set('page', String(page));
-  }
-  if (pageSize && pageSize > 0) {
-    params.set('pageSize', String(pageSize));
-  }
-
-  const query = params.toString();
-  const path = query ? `/admin/chat/threads?${query}` : '/admin/chat/threads';
-
-  return apiFetch<{ data: AdminChatThread[] }>(path, { method: 'GET' });
-}
-
-export async function fetchChatMessages(
-  threadId: string,
-  limit = 100
-): Promise<{ data: AdminChatMessage[] }> {
-  const params = new URLSearchParams({ threadId, limit: String(limit) });
-  return apiFetch<{ data: AdminChatMessage[] }>(
-    `/admin/chat/messages?${params.toString()}`,
+  return apiFetch<{ data: { threads: ChatThreadWithDetails[]; total: number } }>(
+    `/admin/chat/threads?${params.toString()}`,
     { method: 'GET' }
   );
 }
 
+/**
+ * Fetch messages for a specific thread
+ */
+export async function fetchChatMessages(
+  threadId: string,
+  limit = 100
+): Promise<{ data: { messages: ChatMessage[]; thread: ChatThread } }> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  return apiFetch<{ data: { messages: ChatMessage[]; thread: ChatThread } }>(
+    `/admin/chat/threads/${threadId}/messages?${params.toString()}`,
+    { method: 'GET' }
+  );
+}
+
+/**
+ * Send a message as admin to a thread
+ */
 export async function sendAdminChatMessageApi(input: {
-  patientId: string;
-  body: string;
-}): Promise<{ data: { thread: AdminChatThread; message: AdminChatMessage } }> {
-  return apiFetch<{ data: { thread: AdminChatThread; message: AdminChatMessage } }>(
-    '/admin/chat/messages',
+  threadId: string;
+  content: string;
+}): Promise<{ data: { message: ChatMessage; thread: ChatThread } }> {
+  return apiFetch<{ data: { message: ChatMessage; thread: ChatThread } }>(
+    `/admin/chat/threads/${input.threadId}/messages`,
     {
       method: 'POST',
-      body: JSON.stringify(input)
+      body: JSON.stringify({ content: input.content })
     }
   );
 }
 
+/**
+ * Mark all user messages in a thread as read
+ */
+export async function markMessagesAsReadApi(
+  threadId: string
+): Promise<{ data: { updated_count: number } }> {
+  return apiFetch<{ data: { updated_count: number } }>(
+    `/admin/chat/threads/${threadId}/read`,
+    { method: 'POST' }
+  );
+}
+
+/**
+ * Fetch chat notifications
+ */
 export async function fetchChatNotifications(): Promise<{ data: AdminNotification[] }> {
   return apiFetch<{ data: AdminNotification[] }>('/admin/notifications?type=chat', {
     method: 'GET'
   });
 }
 
+/**
+ * Fetch all notifications
+ */
 export async function fetchAllNotifications(
   page?: number,
   pageSize?: number

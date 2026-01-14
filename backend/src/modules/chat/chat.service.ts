@@ -1,85 +1,58 @@
 import { getSupabaseServiceClient } from '@lib/supabase';
-import { KlaviyoCrmService } from '@modules/klaviyo/klaviyo.crm.service';
+import type {
+  ChatThread,
+  ChatMessage,
+  ChatThreadWithDetails
+} from '@outlive/shared';
 
-export interface AdminChatThread {
-  id: string;
-  patient_id: string;
-  created_at: string;
-  updated_at: string;
-  last_message_at: string | null;
-  last_message_preview: string | null;
-  patient_email: string | null;
-  patient_name: string | null;
-}
-
-export interface AdminChatMessage {
-  id: string;
-  thread_id: string;
-  sender_id: string;
-  sender_role: 'patient' | 'admin';
-  body: string;
-  metadata: Record<string, unknown> | null;
-  created_at: string;
-}
-
+/**
+ * Get all chat threads with user info and unread count
+ * Uses v2_chat_threads and v2_chat_messages tables
+ */
 export const getAdminChatThreads = async ({
-  page,
-  pageSize
+  page = 1,
+  pageSize = 50
 }: {
   page?: number;
   pageSize?: number;
-} = {}): Promise<AdminChatThread[]> => {
+} = {}): Promise<{ threads: ChatThreadWithDetails[]; total: number }> => {
   const supabase = getSupabaseServiceClient();
 
-  const safePage = page && page > 0 ? page : 1;
-  const safePageSize =
-    pageSize && pageSize > 0 ? Math.min(pageSize, 200) : 50;
-
+  const safePage = page > 0 ? page : 1;
+  const safePageSize = pageSize > 0 ? Math.min(pageSize, 200) : 50;
   const from = (safePage - 1) * safePageSize;
   const to = from + safePageSize - 1;
 
-  const { data, error } = await supabase
-    .from('chat_threads')
-    .select('*')
-    .order('last_message_at', { ascending: false, nullsFirst: false })
+  // Get all threads
+  const { data: threadsData, error: threadsError, count } = await supabase
+    .from('v2_chat_threads')
+    .select('*', { count: 'exact' })
+    .order('updated_at', { ascending: false, nullsFirst: false })
     .range(from, to);
 
-  if (error) {
-    throw new Error(error.message);
+  if (threadsError) {
+    throw new Error(threadsError.message);
   }
 
-  const threads = (data ?? []) as Array<{
-    id: string;
-    patient_id: string;
-    created_at: string;
-    updated_at: string;
-    last_message_at: string | null;
-    last_message_preview: string | null;
-  }>;
+  const threads = (threadsData ?? []) as ChatThread[];
 
   if (threads.length === 0) {
-    return [];
+    return { threads: [], total: count ?? 0 };
   }
 
-  // Enrich threads with patient email/name using patients + profile tables
-  const supabaseProfiles = getSupabaseServiceClient();
-  const patientIds = Array.from(
-    new Set(
-      threads
-        .map((t) => t.patient_id)
-        .filter((id): id is string => typeof id === 'string' && id.length > 0)
-    )
-  );
+  // Get user IDs to fetch user info
+  const userIds = [...new Set(threads.map((t) => t.user_id).filter(Boolean))];
 
-  let emailByUserId = new Map<string, string | null>();
-  let nameByUserId = new Map<string, string | null>();
+  // Fetch user emails from patients table
+  const emailByUserId = new Map<string, string | null>();
+  const nameByUserId = new Map<string, string | null>();
 
-  if (patientIds.length > 0) {
-    // Try to get email from patients table (user_id -> email)
-    const { data: patientsData } = await supabaseProfiles
+  if (userIds.length > 0) {
+    // Get emails from patients table
+    const { data: patientsData } = await supabase
       .from('patients')
       .select('user_id, email')
-      .in('user_id', patientIds);
+      .in('user_id', userIds);
 
     if (patientsData) {
       for (const row of patientsData as Array<{ user_id: string; email: string | null }>) {
@@ -87,11 +60,11 @@ export const getAdminChatThreads = async ({
       }
     }
 
-    // Try to get name from profile table
-    const { data: profilesData } = await supabaseProfiles
+    // Get names from profile table
+    const { data: profilesData } = await supabase
       .from('profile')
       .select('user_id, first_name, last_name')
-      .in('user_id', patientIds);
+      .in('user_id', userIds);
 
     if (profilesData) {
       for (const row of profilesData as Array<{
@@ -107,173 +80,352 @@ export const getAdminChatThreads = async ({
     }
   }
 
-  return threads.map((row) => ({
-    id: row.id,
-    patient_id: row.patient_id,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    last_message_at: row.last_message_at,
-    last_message_preview: row.last_message_preview,
-    patient_email: emailByUserId.get(row.patient_id) ?? null,
-    patient_name: nameByUserId.get(row.patient_id) ?? null
-  }));
+  // Get unread counts and last messages for each thread
+  const threadIds = threads.map((t) => t.id);
+
+  // Get unread counts (messages from users that admin hasn't read)
+  const { data: unreadData } = await supabase
+    .from('v2_chat_messages')
+    .select('thread_id')
+    .in('thread_id', threadIds)
+    .eq('sender_type', 'user')
+    .eq('read', false);
+
+  const unreadCountByThread = new Map<string, number>();
+  if (unreadData) {
+    for (const row of unreadData as Array<{ thread_id: string }>) {
+      unreadCountByThread.set(
+        row.thread_id,
+        (unreadCountByThread.get(row.thread_id) ?? 0) + 1
+      );
+    }
+  }
+
+  // Get last message for each thread
+  const lastMessageByThread = new Map<string, { content: string; created_at: string }>();
+
+  for (const threadId of threadIds) {
+    const { data: lastMsgData } = await supabase
+      .from('v2_chat_messages')
+      .select('content, created_at')
+      .eq('thread_id', threadId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (lastMsgData) {
+      lastMessageByThread.set(threadId, {
+        content: (lastMsgData as { content: string; created_at: string }).content,
+        created_at: (lastMsgData as { content: string; created_at: string }).created_at
+      });
+    }
+  }
+
+  // Build response
+  const threadsWithDetails: ChatThreadWithDetails[] = threads.map((t) => {
+    const lastMsg = lastMessageByThread.get(t.id);
+    return {
+      ...t,
+      unread_count: unreadCountByThread.get(t.id) ?? 0,
+      user_email: emailByUserId.get(t.user_id) ?? undefined,
+      user_name: nameByUserId.get(t.user_id) ?? undefined,
+      last_message: lastMsg?.content?.substring(0, 100),
+      last_message_at: lastMsg?.created_at
+    };
+  });
+
+  // Sort by last_message_at or updated_at
+  threadsWithDetails.sort((a, b) => {
+    const aTime = a.last_message_at || a.updated_at;
+    const bTime = b.last_message_at || b.updated_at;
+    return new Date(bTime).getTime() - new Date(aTime).getTime();
+  });
+
+  return { threads: threadsWithDetails, total: count ?? 0 };
 };
 
-export const getAdminChatMessages = async ({
-  threadId,
-  limit
-}: {
-  threadId: string;
-  limit?: number;
-}): Promise<AdminChatMessage[]> => {
+/**
+ * Get thread by ID
+ */
+export const getThreadById = async (threadId: string): Promise<ChatThread | null> => {
   const supabase = getSupabaseServiceClient();
 
   const { data, error } = await supabase
-    .from('chat_messages')
+    .from('v2_chat_threads')
     .select('*')
-    .eq('thread_id', threadId)
-    .order('created_at', { ascending: true })
-    .limit(limit ?? 100);
+    .eq('id', threadId)
+    .single();
 
   if (error) {
-    throw new Error(error.message);
+    return null;
   }
 
-  return (data ?? []) as AdminChatMessage[];
+  return data as ChatThread;
 };
 
-export const sendAdminChatMessage = async ({
-  patientId,
-  body,
-  adminId,
-  adminEmail
+/**
+ * Get messages for a specific thread
+ */
+export const getAdminChatMessages = async ({
+  threadId,
+  limit = 100
 }: {
-  patientId: string;
-  body: string;
-  adminId: string;
-  adminEmail?: string;
-}) => {
+  threadId: string;
+  limit?: number;
+}): Promise<{ messages: ChatMessage[]; thread: ChatThread | null }> => {
   const supabase = getSupabaseServiceClient();
 
-  // Ensure thread exists
-  const { data: existingThreads, error: threadError } = await supabase
-    .from('chat_threads')
+  // Get thread
+  const { data: threadData, error: threadError } = await supabase
+    .from('v2_chat_threads')
     .select('*')
-    .eq('patient_id', patientId)
-    .limit(1);
+    .eq('id', threadId)
+    .single();
 
   if (threadError) {
     throw new Error(threadError.message);
   }
 
-  let thread = existingThreads && existingThreads[0];
+  // Get messages
+  const { data: messagesData, error: messagesError } = await supabase
+    .from('v2_chat_messages')
+    .select('*')
+    .eq('thread_id', threadId)
+    .order('created_at', { ascending: true })
+    .limit(limit);
 
-  if (!thread) {
-    const { data: inserted, error: insertError } = await supabase
-      .from('chat_threads')
-      .insert({ patient_id: patientId })
-      .select('*')
-      .single();
-
-    if (insertError || !inserted) {
-      throw new Error(insertError?.message ?? 'Failed to create chat thread');
-    }
-
-    thread = inserted;
+  if (messagesError) {
+    throw new Error(messagesError.message);
   }
 
-  // Insert message as admin
-  const { data: insertedMessages, error: messageError } = await supabase
-    .from('chat_messages')
+  return {
+    messages: (messagesData ?? []) as ChatMessage[],
+    thread: threadData as ChatThread
+  };
+};
+
+/**
+ * Send a message as admin to a specific thread
+ */
+export const sendAdminChatMessage = async ({
+  threadId,
+  content,
+  adminId
+}: {
+  threadId: string;
+  content: string;
+  adminId: string;
+}): Promise<{ message: ChatMessage; thread: ChatThread }> => {
+  const supabase = getSupabaseServiceClient();
+
+  // Verify thread exists
+  const { data: threadData, error: threadError } = await supabase
+    .from('v2_chat_threads')
+    .select('*')
+    .eq('id', threadId)
+    .single();
+
+  if (threadError || !threadData) {
+    throw new Error('Thread not found');
+  }
+
+  // Insert message
+  const { data: messageData, error: messageError } = await supabase
+    .from('v2_chat_messages')
     .insert({
-      thread_id: thread.id,
+      thread_id: threadId,
       sender_id: adminId,
-      sender_role: 'admin',
-      body
+      sender_type: 'admin',
+      content,
+      read: false
     })
     .select('*')
-    .limit(1);
+    .single();
 
-  if (messageError || !insertedMessages || !insertedMessages[0]) {
+  if (messageError || !messageData) {
     throw new Error(messageError?.message ?? 'Failed to send message');
   }
 
-  const message = insertedMessages[0] as AdminChatMessage;
-
-  // Update thread summary
+  // Update thread's updated_at
   await supabase
-    .from('chat_threads')
-    .update({
-      last_message_at: message.created_at,
-      last_message_preview: message.body?.substring(0, 140) ?? ''
+    .from('v2_chat_threads')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('id', threadId);
+
+  return {
+    message: messageData as ChatMessage,
+    thread: threadData as ChatThread
+  };
+};
+
+/**
+ * Mark messages in a thread as read by admin
+ * Only marks messages from users (sender_type = 'user') as read
+ */
+export const markMessagesAsRead = async ({
+  threadId
+}: {
+  threadId: string;
+}): Promise<{ updated_count: number }> => {
+  const supabase = getSupabaseServiceClient();
+
+  // Update all unread user messages in this thread
+  const { data, error } = await supabase
+    .from('v2_chat_messages')
+    .update({ read: true })
+    .eq('thread_id', threadId)
+    .eq('sender_type', 'user')
+    .eq('read', false)
+    .select('id');
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { updated_count: data?.length ?? 0 };
+};
+
+// ============================================================================
+// USER CHAT FUNCTIONS
+// ============================================================================
+
+/**
+ * Get or create a chat thread for a user
+ */
+export const getOrCreateUserThread = async (userId: string): Promise<ChatThread> => {
+  const supabase = getSupabaseServiceClient();
+
+  // Try to find existing thread - get the most recently updated one if multiple exist
+  const { data: existingThreads, error: findError } = await supabase
+    .from('v2_chat_threads')
+    .select('*')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(1);
+
+  if (findError) {
+    throw new Error(findError.message);
+  }
+
+  if (existingThreads && existingThreads.length > 0) {
+    return existingThreads[0] as ChatThread;
+  }
+
+  // Create new thread for user
+  const { data: newThread, error: createError } = await supabase
+    .from('v2_chat_threads')
+    .insert({
+      user_id: userId,
+      subject: 'Support Chat'
     })
+    .select('*')
+    .single();
+
+  if (createError || !newThread) {
+    throw new Error(createError?.message ?? 'Failed to create chat thread');
+  }
+
+  return newThread as ChatThread;
+};
+
+/**
+ * Get user's chat thread and messages
+ */
+export const getUserChatMessages = async ({
+  userId,
+  limit = 100
+}: {
+  userId: string;
+  limit?: number;
+}): Promise<{ messages: ChatMessage[]; thread: ChatThread }> => {
+  const thread = await getOrCreateUserThread(userId);
+
+  const supabase = getSupabaseServiceClient();
+
+  const { data: messagesData, error: messagesError } = await supabase
+    .from('v2_chat_messages')
+    .select('*')
+    .eq('thread_id', thread.id)
+    .order('created_at', { ascending: true })
+    .limit(limit);
+
+  if (messagesError) {
+    throw new Error(messagesError.message);
+  }
+
+  return {
+    messages: (messagesData ?? []) as ChatMessage[],
+    thread
+  };
+};
+
+/**
+ * Send a message as user
+ */
+export const sendUserChatMessage = async ({
+  userId,
+  content
+}: {
+  userId: string;
+  content: string;
+}): Promise<{ message: ChatMessage; thread: ChatThread }> => {
+  const supabase = getSupabaseServiceClient();
+
+  // Get or create thread
+  const thread = await getOrCreateUserThread(userId);
+
+  // Insert message
+  const { data: messageData, error: messageError } = await supabase
+    .from('v2_chat_messages')
+    .insert({
+      thread_id: thread.id,
+      sender_id: userId,
+      sender_type: 'user',
+      content,
+      read: false
+    })
+    .select('*')
+    .single();
+
+  if (messageError || !messageData) {
+    throw new Error(messageError?.message ?? 'Failed to send message');
+  }
+
+  // Update thread's updated_at
+  await supabase
+    .from('v2_chat_threads')
+    .update({ updated_at: new Date().toISOString() })
     .eq('id', thread.id);
 
-  // Create notifications for this admin message
-  try {
-    const SYSTEM_USER_ID = '00000000-0000-0000-0000-000000000000';
+  return {
+    message: messageData as ChatMessage,
+    thread
+  };
+};
 
-    // System-level chat notification visible to all admins
-    await supabase.from('notifications').insert({
-      user_id: SYSTEM_USER_ID,
-      type: 'chat',
-      title: 'New admin message',
-      body: body.substring(0, 80) || 'New message from care team',
-      related_entity_type: 'chat_message',
-      related_entity_id: message.id,
-      metadata: {
-        patientId,
-        threadId: thread.id,
-        messagePreview: body.substring(0, 100),
-        source: 'inhouse_chat_admin',
-        direction: 'admin_to_patient',
-        adminId,
-        adminEmail: adminEmail ?? null
-      }
-    });
+/**
+ * Mark admin messages as read by user
+ * Only marks messages from admins (sender_type = 'admin') as read
+ */
+export const markAdminMessagesAsRead = async ({
+  threadId
+}: {
+  threadId: string;
+}): Promise<{ updated_count: number }> => {
+  const supabase = getSupabaseServiceClient();
 
-    // Patient-specific notification so the patient can see the message in their app
-    await supabase.from('notifications').insert({
-      user_id: patientId,
-      type: 'chat',
-      title: 'New message from your care team',
-      body: body.substring(0, 80) || 'You have a new message',
-      related_entity_type: 'chat_message',
-      related_entity_id: message.id,
-      metadata: {
-        threadId: thread.id,
-        messagePreview: body.substring(0, 100),
-        source: 'inhouse_chat_admin',
-        direction: 'admin_to_patient'
-      }
-    });
-  } catch {
-    // Do not fail chat if notification creation fails
+  // Update all unread admin messages in this thread
+  const { data, error } = await supabase
+    .from('v2_chat_messages')
+    .update({ read: true })
+    .eq('thread_id', threadId)
+    .eq('sender_type', 'admin')
+    .eq('read', false)
+    .select('id');
+
+  if (error) {
+    throw new Error(error.message);
   }
 
-  // Trigger Klaviyo "Message Received" event for admin -> patient messages
-  try {
-    const { data: patientRows, error: patientError } = await supabase
-      .from('patients')
-      .select('email')
-      .eq('user_id', patientId)
-      .limit(1);
-
-    const patientEmail =
-      !patientError && patientRows && patientRows[0] && typeof patientRows[0].email === 'string'
-        ? (patientRows[0].email as string)
-        : undefined;
-
-    if (patientEmail) {
-      await KlaviyoCrmService.sendMessageReceived({
-        patientId,
-        email: patientEmail,
-        channel: 'admin'
-      });
-    }
-  } catch {
-    // Klaviyo failures must not impact chat delivery
-  }
-
-  return { thread, message };
+  return { updated_count: data?.length ?? 0 };
 };

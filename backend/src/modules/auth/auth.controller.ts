@@ -39,7 +39,7 @@ const getAccessCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
   sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const,
-  path: '/api',
+  path: '/', // Use root path to allow socket.io access
   // Persist login similarly to refresh cookie; actual JWT expiry is still enforced by Supabase.
   maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
 });
@@ -62,13 +62,15 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const result = await loginUser(body.email, body.password);
 
-    // Store tokens in HttpOnly cookies instead of returning them in the body.
+    // Store tokens in HttpOnly cookies for API authentication
     setAuthCookies(res, result.tokens);
 
-    const response: ApiResponse<{ user: typeof result.user; role: string | null }> = {
+    // Also return accessToken in body for socket.io handshake auth (cross-origin support)
+    const response: ApiResponse<{ user: typeof result.user; role: string | null; accessToken: string }> = {
       data: {
         user: result.user,
-        role: result.role
+        role: result.role,
+        accessToken: result.tokens.accessToken
       },
       message: 'Login successful'
     };
@@ -108,10 +110,12 @@ export const refresh = async (req: Request, res: Response): Promise<void> => {
     // Rotate cookies if Supabase provided new tokens.
     setAuthCookies(res, result.tokens);
 
-    const response: ApiResponse<{ user: typeof result.user; role: string | null }> = {
+    // Also return accessToken in body for socket.io handshake auth (cross-origin support)
+    const response: ApiResponse<{ user: typeof result.user; role: string | null; accessToken: string }> = {
       data: {
         user: result.user,
-        role: result.role
+        role: result.role,
+        accessToken: result.tokens.accessToken
       },
       message: 'Session refreshed'
     };
